@@ -14,7 +14,7 @@ You are welcome to try out our toolkit with the demo data we provided. The demo 
 # Quick start
 
 ## Setup Azure instance
-Start a Data Science Virtual Machine (DSVM). In this repo, we are using Ubuntu 18.04 (Linux VM). For more details about creating the VM, please reference: [Creare an Ubuntu Data Science Virtual Machine](https://docs.microsoft.com/en-us/azure/machine-learning/data-science-virtual-machine/dsvm-ubuntu-intro).
+Start a Data Science Virtual Machine (DSVM). In this repo, we are using Ubuntu 18.04 (Linux VM). For more details about creating the VM, please reference [Creare an Ubuntu Data Science Virtual Machine](https://docs.microsoft.com/en-us/azure/machine-learning/data-science-virtual-machine/dsvm-ubuntu-intro).
 
 Open port (for example, 6000-6010) in the security group for tensorboard. You may find [this blog](https://azadehkhojandi.blogspot.com/2018/11/how-to-run-tensorboard-on-azure-vms.html) helpful.
 

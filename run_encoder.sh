@@ -1,17 +1,17 @@
-export DATA_DIR=$HOME/projects/Predict-The-Success-of-Crowdfunding/raw_data_webrobots
-export GLOVE_DIR=$HOME/projects/Predict-The-Success-of-Crowdfunding/glove
-export DATA_NAME=KICK
-export OUTPUT_DIR=$HOME/projects/Predict-The-Success-of-Crowdfunding/encoded_data
+export DATA_DIR=/datadrive/projects/Amplify-AutoML-Toolkit/Demo_data
+export GLOVE_DIR=/datadrive/projects/Amplify-AutoML-Toolkit/glove
+export OUTPUT_DIR=/datadrive/projects/Amplify-AutoML-Toolkit/encoded_data
 
 
 python encoder.py --data_dir $DATA_DIR \
-				  --data_name $DATA_NAME \
 				  --output_dir $OUTPUT_DIR\
 				  --metadata_file metadata_comb.json \
+				  --train_file comb_train.tsv \
+				  --dev_file comb_dev.tsv \
+				  --test_file comb_test.tsv \
 				  --use_text_features True \
 				  --encode_text_with glove\
-				  --glove_dir $GLOVE_DIR \
-				  --glove_file glove.6B.50d.txt \
+				  --glove_file $GLOVE_DIR/glove.6B.50d.txt \
 				  --max_words 20\
 				  --max_sequence_length 5\
 				  --embedding_dim 50

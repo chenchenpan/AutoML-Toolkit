@@ -1,12 +1,10 @@
-export ENCODED_DATA_DIR=$HOME/projects/Predict-The-Success-of-Crowdfunding/encoded_data
-export SEARCH_SPACE=$HOME/projects/Predict-The-Success-of-Crowdfunding/raw_data_webrobots/KICK/search_space.json
-export DATA_NAME=KICK
-export OUTPUT_DIR=$HOME/projects/Predict-The-Success-of-Crowdfunding/outputs
+export ENCODED_DATA_DIR=/datadrive/projects/Amplify-AutoML-Toolkit/encoded_data
+export SEARCH_SPACE=/datadrive/projects/Amplify-AutoML-Toolkit/Demo_data/search_space.json
+export OUTPUT_DIR=/datadrive/projects/Amplify-AutoML-Toolkit/outputs
 
 
 
 python experiments.py --encoded_data_dir $ENCODED_DATA_DIR \
-					  --data_name $DATA_NAME \
 					  --search_space_filepath $SEARCH_SPACE \
 					  --output_dir $OUTPUT_DIR \
 					  --task_type classification \

@@ -47,6 +47,18 @@ def main():
         # default='metadata.json',
         help=('which tabular metadata file will be used?'))
 
+    parser.add_argument('--train_file', type=str,
+        # default='metadata.json',
+        help=('which train file will be used?'))
+
+    parser.add_argument('--dev_file', type=str,
+        # default='metadata.json',
+        help=('which dev file will be used?'))
+
+    parser.add_argument('--test_file', type=str,
+        # default='metadata.json',
+        help=('which test file will be used?'))
+
     # parameter for using text features
     parser.add_argument('--use_text_features', type=str2bool, nargs='?',
         const=True, default=False,
@@ -56,13 +68,9 @@ def main():
         # default='tfidf',
         help=('how to encode the text features? (tfidf, glove)'))
 
-    parser.add_argument('--glove_dir', type=str,
-        # default='/data/home/t-chepan/projects/MS-intern-project/raw_data',
-        help=('directory to load the pre-trained GloVe.'))
-
     parser.add_argument('--glove_file', type=str,
         # default='/data/home/t-chepan/projects/MS-intern-project/raw_data',
-        help=('which GloVe file will be used? (glove.840B.300d.txt)'))
+        help=('directory to the GloVe file will be used. (e.g. glove.840B.300d.txt)'))
 
     parser.add_argument('--max_words', type=int,
         # default='/data/home/t-chepan/projects/MS-intern-project/raw_data',
@@ -99,9 +107,9 @@ def main():
 
     print("Start to load data...")
 
-    train_path = os.path.join(path_to_data, "textandmeta_train.tsv")
-    dev_path = os.path.join(path_to_data, "textandmeta_dev.tsv")
-    test_path = os.path.join(path_to_data, "textandmeta_test.tsv")
+    train_path = os.path.join(path_to_data, args.train_file)
+    dev_path = os.path.join(path_to_data, args.dev_file)
+    test_path = os.path.join(path_to_data, args.test_file)
     df_train = pd.read_csv(train_path, sep='\t')
     df_dev = pd.read_csv(dev_path, sep='\t')
     df_test = pd.read_csv(test_path, sep='\t')
@@ -124,10 +132,10 @@ def main():
         text_config.max_words = args.max_words          
 
         if mode == 'glove':
-            glove_file_path = os.path.join(args.glove_dir, args.glove_file)
+            # glove_file_path = os.path.join(args.glove_dir, args.glove_file)
             text_config.maxlen = args.max_sequence_length
             text_config.embedding_dim = args.embedding_dim
-            text_config.embeddings_index = open_glove(glove_file_path)
+            text_config.embeddings_index = open_glove(args.glove_file)
 
         if mode != 'glove' and mode != 'tfidf':
             raise argparse.ArgumentTypeError(mode, "can't be recognized.")

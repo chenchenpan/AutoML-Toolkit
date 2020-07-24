@@ -43,7 +43,7 @@ cd ~/projects/Amplify-AutoML-Toolkit/
 All the models and results about this experiment will be saved in `~/projects/Amplify-AutoML-Toolkit/outputs`.
 
 
-### Start tensorboard to monitor WikiTable experiment
+### Start tensorboard to monitor experiment
 ```
 screen -S tb
 source activate lab

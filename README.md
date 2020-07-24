@@ -1,5 +1,5 @@
 # Amplify-AutoML-Toolkit
-An internship project working at Microsoft
+An internship project
 
 # Demo Data
 

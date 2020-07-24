@@ -11,10 +11,10 @@ python encoder.py --data_dir $DATA_DIR \
 				  --test_file comb_test.tsv \
 				  --use_text_features True \
 				  --encode_text_with glove\
-				  --glove_file $GLOVE_DIR/glove.6B.50d.txt \
+				  --glove_file $GLOVE_DIR/glove.6B.100d.txt \
 				  --max_words 20\
 				  --max_sequence_length 5\
-				  --embedding_dim 50
+				  --embedding_dim 100
 
 
 

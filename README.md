@@ -24,6 +24,12 @@ ssh into the instance.
 ```
 mkdir ~/projects
 cd ~/projects/
+mkdir glove
+wget http://nlp.stanford.edu/data/glove.6B.zip
+unzip glove.6B.zip -d glove/
+rm glove.6B.zip
+
+cd ~/projects/
 git clone https://github.com/chenchenpan/Amplify-AutoML-Toolkit.git
 
 cd ~/projects/Amplify-AutoML-Toolkit/

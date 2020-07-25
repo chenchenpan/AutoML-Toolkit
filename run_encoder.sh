@@ -1,5 +1,5 @@
 export DATA_DIR=/datadrive/projects/Amplify-AutoML-Toolkit/Demo_data
-export GLOVE_DIR=/datadrive/projects/Amplify-AutoML-Toolkit/glove
+export GLOVE_DIR=/datadrive/projects/glove
 export OUTPUT_DIR=/datadrive/projects/Amplify-AutoML-Toolkit/encoded_data
 
 

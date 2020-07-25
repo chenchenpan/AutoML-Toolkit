@@ -27,6 +27,7 @@ cd ~/projects/
 git clone https://github.com/chenchenpan/Amplify-AutoML-Toolkit.git
 
 cd ~/projects/Amplify-AutoML-Toolkit/
+chmod 777 vm_setup.sh
 ./vm_setup.sh
 ```
 ## Running experiments and monitor with tensorboard
@@ -36,9 +37,14 @@ Use the 'define_metadata_and_search_space.ipynb' to create the metadata file for
 
 ### Start Kickstarter experiment
 ```
-screen -S kick
-source activate lab
+screen -S demo
+source ~/project/envs/lab/bin/activate
 cd ~/projects/Amplify-AutoML-Toolkit/
+
+chmod 777 run_encoder.sh
+./run_encoder.sh
+
+chmod 777 run_experiment.sh
 ./run_experiment.sh
 
 ```
@@ -49,7 +55,7 @@ All the models and results about this experiment will be saved in `~/projects/Am
 ### Start tensorboard to monitor experiment
 ```
 screen -S tb
-source activate lab
+source ~/project/envs/lab/bin/activate
 cd  ~/projects/Amplify-AutoML-Toolkit/
 tensorboard --logdir=outputs
 ```

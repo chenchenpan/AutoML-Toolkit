@@ -47,6 +47,9 @@ screen -S demo
 source ~/project/envs/lab/bin/activate
 cd ~/projects/Amplify-AutoML-Toolkit/
 
+mkdir encoded_data
+mkdir outputs
+
 chmod 777 run_encoder.sh
 ./run_encoder.sh
 

@@ -4,12 +4,17 @@ import os
 import tensorflow as tf
 import numpy as np
 import keras
+import pickle
 # from keras import Model
 from keras import optimizers
 from keras.layers import Input, Dense, LSTM, Dropout, Flatten, Concatenate
 from keras.layers.embeddings import Embedding
 from keras.callbacks import EarlyStopping, TensorBoard, ModelCheckpoint
 from encoder import Encoder
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn import linear_model, datasets
+from sklearn import svm
+from sklearn.metrics import accuracy_score, mean_squared_error
 
 
 def dense_block(input_tensor, model_config):
@@ -94,8 +99,32 @@ def filter_none(contain_none_list):
     return new_list
 
 
+def get_model_cls(model_type):
+    model_cls_dict = {
+        'mlp': NeuralNetworkModel,
+        'logistic_regression': LogisticRegressionModel,
+        'svm': SVMModel,
+        'random_forest': RandomForestModel
+    }
+    return model_cls_dict[model_type]
+
 
 class Model(object):
+    def __init__(self, text_config, model_config):
+        pass           
+
+    def train(self, y_train, X_train_struc, X_train_text, y_dev, X_dev_struc, X_dev_text):
+        pass
+
+    
+    def predict(self, y_test, X_test_struc, X_test_text):
+        pass
+
+    def evaluate(self, y_test, X_test_struc, X_test_text):
+        pass
+
+
+class NeuralNetworkModel(Model):
     def __init__(self, text_config, model_config):
         self.text_config = text_config
         self.model_config = model_config               
@@ -193,25 +222,140 @@ class Model(object):
                  callbacks=callbacks_list,
                  epochs=self.model_config.n_epochs, 
                  batch_size=self.model_config.batch_size,
-                 verbose = self.model_config.verbose
-                 )
-        
-        return self.hist
+                 verbose = self.model_config.verbose)
+        val_metric = self.hist.history['val_acc'][-1]
+        return {'val_metric': val_metric}
 
     
     def predict(self, y_test, X_test_struc, X_test_text):
         X_test_list = filter_none([X_test_struc, X_test_text])
         return self.model.predict(X_test_list)
 
-    def evaluate(self, y_test, X_test_struc, X_test_text):
+    # def evaluate(self, y_test, X_test_struc, X_test_text):
+    #     X_test_list = filter_none([X_test_struc, X_test_text])
+    #     _, metric = self.model.evaluate(X_test_list, y_test, verbose=self.model_config.verbose)
+    #     return metric
+
+
+def onehot2id(labels):
+    return np.argmax(labels, axis=-1)
+
+
+class SklearnModel(Model):
+    def __init__(self, text_config, model_config):
+        self.text_config = text_config
+        self.model_config = model_config
+
+    def predict(self, y_test, X_test_struc, X_test_text):
         X_test_list = filter_none([X_test_struc, X_test_text])
-        loss, accuracy = self.model.evaluate(X_test_list, y_test, verbose=self.model_config.verbose)
-        return loss, accuracy
+        X_test = np.concatenate(X_test_list, axis=-1)
+        return self.model.predict(X_test)
+
+
+class LogisticRegressionModel(SklearnModel):
+
+    def train(self, y_train, X_train_struc, X_train_text, y_dev, X_dev_struc, X_dev_text):
+        if self.model_config.task_type == 'classification' and self.model_config.num_classes > 2:
+            y_train = onehot2id(y_train)
+            y_dev = onehot2id(y_dev)
+        X_train_list = filter_none([X_train_struc, X_train_text])
+        X_train = np.concatenate(X_train_list, axis=-1)
+        print('X_train: {}'.format(X_train.shape))
+        self.model = linear_model.LogisticRegression(C=self.model_config.C)
+        self.model.fit(X_train, y_train)
+
+        model_path = os.path.join(self.model_config.output_dir, 'model.pkl')
+        with open(model_path, 'wb') as f:
+            pickle.dump(self.model, f)
+
+        X_dev_list = filter_none([X_dev_struc, X_dev_text])
+        X_dev = np.concatenate(X_dev_list, axis=-1)
+        dev_pred = self.model.predict(X_dev)
+        val_acc = accuracy_score(y_dev, dev_pred)
+        return {'val_metric': val_acc}
+
+
+class RandomForestModel(SklearnModel):     
+
+    def train(self, y_train, X_train_struc, X_train_text, y_dev, X_dev_struc, X_dev_text):
+        if self.model_config.task_type == 'classification' and self.model_config.num_classes > 2:
+            y_train = onehot2id(y_train)
+            y_dev = onehot2id(y_dev)
+        X_train_list = filter_none([X_train_struc, X_train_text])
+        X_train = np.concatenate(X_train_list, axis=-1)
+
+        if self.model_config.task_type == 'classification':
+            self.model = RandomForestClassifier(n_estimators=self.model_config.n_trees)
+        elif self.model_config.task_type == 'regression':
+            self.model = RandomForestRegressor(n_estimators=self.model_config.n_trees)
+        else:
+            raise ValueError('Unknown task type: {}'.format(self.model_config.task_type))
+
+        self.model.fit(X_train, y_train)
+
+        model_path = os.path.join(self.model_config.output_dir, 'model.json')
+        with open(model_path, 'wb') as f:
+            pickle.dump(self.model, f)
+
+        X_dev_list = filter_none([X_dev_struc, X_dev_text])
+        X_dev = np.concatenate(X_dev_list, axis=-1)
+        dev_pred = self.model.predict(X_dev)
+        if self.model_config.task_type == 'classification':
+            val_acc = accuracy_score(y_dev, dev_pred)
+            return {'val_metric': val_acc}
+        elif self.model_config.task_type == 'regression':
+            val_mse = mean_squared_error(y_dev, dev_pred)
+            return {'val_metric': val_mse}
+        else:
+            raise ValueError('Unknown task type: {}'.format(self.model_config.task_type))  
 
 
 
+class SVMModel(SklearnModel):       
+
+    def train(self, y_train, X_train_struc, X_train_text, y_dev, X_dev_struc, X_dev_text):
+
+        if self.model_config.task_type == 'classification':
+            self.model = svm.SVC(C=self.model_config.C)
+        elif self.model_config.task_type == 'regression':
+            self.model = svm.SVR(C=self.model_config.C)
+        else:
+            raise ValueError('Unknown task type: {}'.format(self.model_config.task_type))
+
+        if self.model_config.task_type == 'classification' and self.model_config.num_classes > 2:
+            y_train = onehot2id(y_train)
+            y_dev = onehot2id(y_dev)
+        X_train_list = filter_none([X_train_struc, X_train_text])
+        X_train = np.concatenate(X_train_list)
+        self.model.fit(X_train, y_train)
+
+        model_path = os.path.join(self.model_config.output_dir, 'model.json')
+        with open(model_path, 'wb') as f:
+            pickle.dump(self.model, f)
+
+        X_dev_list = filter_none([X_dev_struc, X_dev_text])
+        X_dev = np.concatenate(X_dev_list, axis=-1)
+        dev_pred = self.model.predict(X_dev)
+        if self.model_config.task_type == 'classification':
+            val_acc = accuracy_score(y_dev, dev_pred)
+            return {'val_metric': val_acc}
+        elif elf.model_config.task_type == 'regression':
+            val_mse = mean_squared_error(y_dev, dev_pred)
+            return {'val_metric': val_mse}
+        else:
+            raise ValueError('Unknown task type: {}'.format(self.model_config.task_type))
 
 
+class LinearRegressionModel(object):
+    def __init__(self, text_config, model_config):
+        self.text_config = text_config
+        self.model_config = model_config           
 
+    def train(self, y_train, X_train_struc, X_train_text, y_dev, X_dev_struc, X_dev_text):
+        pass
+    
+    def predict(self, y_test, X_test_struc, X_test_text):
+        pass
 
-
+    def evaluate(self, y_test, X_test_struc, X_test_text):
+        pass

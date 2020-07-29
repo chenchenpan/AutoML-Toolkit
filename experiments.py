@@ -3,7 +3,7 @@ import os
 import json
 import numpy as np
 from encoder import Mapping, Encoder
-from modeling import Model
+from modeling import Model, get_model_cls
 
 
 """
@@ -87,6 +87,11 @@ def main():
     ###########################################
     ## load encoded training set and dev set ##
     ###########################################
+    if not os.path.exists(path_to_data):
+        os.makedirs(path_to_data)
+
+    if not os.path.exists(path_to_save):
+        os.makedirs(path_to_save)
 
     y_train_path = os.path.join(path_to_data, 'y_train.npy')
     if os.path.exists(y_train_path):
@@ -164,31 +169,46 @@ def main():
     #######################################################################
   
     for i in range(args.num_trials):
+        print('Running trial number {}!'.format(i))
         model_config = sample_modelconfig(search_space, default_model_config)
         model_name = 'model_{}'.format(i)
-        print('*' * 20)
+        print('*' * 50)
         print('model_config: ' + model_config['output_dir'])
 
         model_config = Mapping(model_config)
 
-        print('*' * 20)
-        print('model_config: ' + model_config.output_dir)
 
         model_config.output_dir = os.path.join(default_model_config.output_dir, model_name)
         if not os.path.exists(model_config.output_dir):
             os.makedirs(model_config.output_dir)
-        model = Model(text_config, model_config)
-        hist = model.train(y_train, X_train_struc, X_train_text, y_train, X_train_struc, X_train_text)
+        model = get_model_cls(model_config.model_type)(text_config, model_config)
+        experiment_output = model.train(y_train, X_train_struc, X_train_text, y_dev, X_dev_struc, X_dev_text)
 
-        ## save hist.history and model_config ##
-        history_path = os.path.join(model_config.output_dir, 'history.json')
-        with open(history_path, 'w') as hf:
-            json.dump(hist.history, hf)
+        ## save output and model_config ##
+        experiment_output_path = os.path.join(model_config.output_dir, 'output.json')
+        with open(experiment_output_path, 'w') as f:
+            json.dump(experiment_output, f, indent=4)
 
         model_config_savepath = os.path.join(model_config.output_dir, 'model_config.json')
         with open(model_config_savepath, 'w') as mf:
-            json.dump(model_config, mf)
+            json.dump(model_config, mf, indent=4)
+        print('*' * 50)
 
+    trial_metrics = []
+    for trial_dir in os.listdir(default_model_config.output_dir):
+        if trial_dir == '.DS_Store':
+            continue
+        output_file = os.path.join(default_model_config.output_dir, trial_dir, 'output.json')
+        with open(output_file, 'r') as f:
+            output = json.load(f)
+            metric = output['val_metric']
+        trial_metrics.append((metric, trial_dir))
+    for i, (metric, trial_dir) in enumerate(sorted(
+        trial_metrics, key=lambda x: x[0], reverse=True)[:5]):
+        print('{}: {} {}'.format(i, metric, trial_dir))
+
+    print('=' * 50)
+    print('{} trials have been evaluated, the experiment finished successfully!'.format(args.num_trials))
 
 
 def sample_modelconfig(search_space, default_model_config):
@@ -217,25 +237,34 @@ def sample_modelconfig(search_space, default_model_config):
 
 def create_default_modelconfig(task_type, num_classes, model_type, output_dir):
     model_config = Mapping()
+    model_config.model_type = model_type ## default is 'mlp'.
+    model_config.output_dir = output_dir
     model_config.task_type = task_type ## 'classification' or 'regression'
     model_config.num_classes = num_classes ## number of classes or number of outputs
-    model_config.combine = 'concate' ## or 'attention'
-    model_config.model_type = model_type ## default is 'mlp', can be 'skip_connections'
-    model_config.n_layers_dense = 2
-    model_config.hidden_size_dense = 16
-    model_config.n_layers_lstm = 2
-    model_config.hidden_size_lstm = 32
-    model_config.dropout_rate_lstm = 0.0
-    model_config.n_layers_output = 2
-    model_config.hidden_size_output = 32
-    model_config.optimizer = 'adam' 
-    model_config.learning_rate = 0.001
-    model_config.clipnorm = 5.0
-    model_config.patience = 20
-    model_config.output_dir = output_dir
-    model_config.n_epochs = 20
-    model_config.batch_size = 1
-    model_config.verbose = 0
+    if model_type == 'mlp':
+        model_config.combine = 'concate' ## or 'attention'
+        model_config.n_layers_dense = 2
+        model_config.hidden_size_dense = 16
+        model_config.n_layers_lstm = 2
+        model_config.hidden_size_lstm = 32
+        model_config.dropout_rate_lstm = 0.0
+        model_config.n_layers_output = 2
+        model_config.hidden_size_output = 32
+        model_config.optimizer = 'adam' 
+        model_config.learning_rate = 0.001
+        model_config.clipnorm = 5.0
+        model_config.patience = 20
+        model_config.n_epochs = 20
+        model_config.batch_size = 1
+        model_config.verbose = 0
+    elif model_type == 'random_forest':
+        model_config.n_trees = 10
+    elif model_type == 'logistic_regression':
+        model_config.C = 0.01
+    elif model_type == 'svm':
+        model_config.C = 0.01
+    else:
+        raise ValueError('Unknown model type: {}'.format(model_type))
     return model_config 
 
 

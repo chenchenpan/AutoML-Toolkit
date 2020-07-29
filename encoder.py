@@ -107,6 +107,12 @@ def main():
 
     print("Start to load data...")
 
+    if not os.path.exists(path_to_data):
+        os.makedirs(path_to_data)
+
+    if not os.path.exists(path_to_save):
+        os.makedirs(path_to_save)
+
     train_path = os.path.join(path_to_data, args.train_file)
     dev_path = os.path.join(path_to_data, args.dev_file)
     test_path = os.path.join(path_to_data, args.test_file)
@@ -149,7 +155,7 @@ def main():
     y_dev, X_dev_struc, X_dev_text = encoder.transform(df_dev)
     y_test, X_test_struc, X_test_text = encoder.transform(df_test)
 
-    if encoder.embedding_matrix is not None:
+    if encoder.text_config.mode == 'glove':
         f_path = os.path.join(path_to_save, 'embedding_matrix.npy')
         text_config.embedding_matrix_path = f_path
         with open(f_path, 'wb') as f:
@@ -157,7 +163,8 @@ def main():
 
     if text_config is not None:
         text_config_path = os.path.join(path_to_save, 'text_config.json')
-        del text_config.embeddings_index
+        if encoder.text_config.mode == 'glove':
+            del text_config.embeddings_index
         with open(text_config_path, 'w') as f:
             json.dump(text_config, f)
 
@@ -380,25 +387,30 @@ def encode_strucdata(metadata, df_X_float, df_X_int, df_X_cat, df_X_datetime, df
         X_datetime = encode_datetime(df_X_datetime)
         X_list.append(X_datetime)
         cols_name += metadata['input_datetime']
-    
-    ### normalize all the inputs except boolean, categorical, and text features
-    X_arr = np.concatenate(X_list, axis=1)
 
-    if scaler == None:
-        scaler = StandardScaler()
-        X_struc = scaler.fit_transform(X_arr)
+    if X_list:
+        ### normalize all the inputs except boolean, categorical, and text features
+        X_arr = np.concatenate(X_list, axis=1)
+
+        if scaler == None:
+            scaler = StandardScaler()
+            X_struc = scaler.fit_transform(X_arr)
+        else:
+            X_struc = scaler.transform(X_arr)
+        assert len(cols_name) == X_struc.shape[1]
+        print('Except boolean, categorical and text input data after encoding, the shape is {}'.format(X_struc.shape))
+        print('we have {} columns.'.format(len(cols_name)))
     else:
-        X_struc = scaler.transform(X_arr)
-
-    assert len(cols_name) == X_struc.shape[1]
-    print('Except boolean, categorical and text input data after encoding, the shape is {}'.format(X_struc.shape))
-    print('we have {} columns.'.format(len(cols_name)))
+        X_struc = None
 
     ### encode boolean columns
     if df_X_bool.shape[1] > 0:
         X_bool = encode_bool(df_X_bool)
         cols_name += metadata['input_bool']
-        X_struc = np.concatenate([X_struc, X_bool], axis=1)
+        if X_struc is None:
+            X_struc = X_bool
+        else:
+            X_struc = np.concatenate([X_struc, X_bool], axis=1)
 
     ### encode the categorical columns 
     if df_X_cat.shape[1] > 0:
@@ -415,7 +427,10 @@ def encode_strucdata(metadata, df_X_float, df_X_int, df_X_cat, df_X_datetime, df
         vocab_od = collections.OrderedDict(sorted(vocab.items(), key=lambda x:x[1]))
         cat_encoded_cols = list(vocab_od.keys())
         cols_name += cat_encoded_cols
-        X_struc = np.concatenate([X_struc, X_cat], axis=1)
+        if X_struc is None:
+            X_struc = X_cat
+        else:
+            X_struc = np.concatenate([X_struc, X_cat], axis=1)
 
     assert len(cols_name) == X_struc.shape[1]
     print('Non-text input data after encoding, the shape is {}'.format(X_struc.shape))
@@ -457,7 +472,7 @@ def encode_textdata(df_X_text, tokenizer, mode, max_words, maxlen, embedding_dim
             tokenizer = Tokenizer(num_words=max_words)
             tokenizer.fit_on_texts(texts)
         X_text = tokenizer.texts_to_matrix(texts, mode='tfidf')
-        print(X_text.shape)
+        print('tfidf X_text shape: {}'.format(X_text.shape))
         embedding_matrix = None
 
     if mode == 'glove':
@@ -503,7 +518,7 @@ def encode_dataset(df, metadata, y_encoder=None, vectorizer=None, scaler=None, t
 
     print("complete encoding part of structural data!")
 
-    if mode == None:  
+    if not metadata['input_text'] or mode == None:  
         X_text, tokenizer, embedding_matrix = None, None, None
 
     else:

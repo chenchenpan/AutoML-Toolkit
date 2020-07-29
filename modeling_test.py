@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from encoder import Encoder, Mapping, open_glove
 from encoder_test import get_fake_dataset
-from modeling import Model
+from modeling import LogisticRegressionModel, SVMModel, RandomForestModel, NeuralNetworkModel
 
 
 def get_fake_modelconfig(output_path):
@@ -20,7 +20,7 @@ def get_fake_modelconfig(output_path):
     model_config.n_layers_output = 2
     model_config.hidden_size_output = 32
     model_config.optimizer = 'adam' ## 'adam', 'sgd', 'rmsprop'
-    model_config.learning_rate = 0.001
+    model_config.learning_rate = 0.01
     model_config.clipnorm = 5.0
     model_config.patience = 2
     model_config.output_dir = output_path
@@ -29,7 +29,38 @@ def get_fake_modelconfig(output_path):
     model_config.verbose = 0
     return model_config
 
-class TestNNModel(unittest.TestCase):
+
+def get_fake_lr_modelconfig(output_path):
+    model_config = Mapping()
+    model_config.task_type = 'classification' ## 'classification' or 'regression'
+    model_config.num_classes = 3 ## number of classes or number of outputs
+    model_config.model_type = 'logistic_regression' ## default is 'mlp', can be 'skip_connections'
+    model_config.output_dir = output_path
+    model_config.C = 0.1
+    return model_config
+
+
+def get_fake_rf_modelconfig(output_path):
+    model_config = Mapping()
+    model_config.task_type = 'classification' ## 'classification' or 'regression'
+    model_config.num_classes = 3 ## number of classes or number of outputs
+    model_config.model_type = 'random_forest' ## default is 'mlp', can be 'skip_connections'
+    model_config.output_dir = output_path
+    model_config.n_trees = 0.1
+    return model_config
+
+
+def get_fake_svm_modelconfig(output_path):
+    model_config = Mapping()
+    model_config.task_type = 'classification' ## 'classification' or 'regression'
+    model_config.num_classes = 3 ## number of classes or number of outputs
+    model_config.model_type = 'svm' ## default is 'mlp', can be 'skip_connections'
+    model_config.output_dir = output_path
+    model_config.C = 0.1
+    return model_config
+
+
+class TestModel(unittest.TestCase):
     def test_lstm(self):
         df_train, df_dev, df_test, metadata = get_fake_dataset(with_text_col=True)
 
@@ -54,14 +85,14 @@ class TestNNModel(unittest.TestCase):
         if not os.path.exists(model_config.output_dir):
             os.makedirs(model_config.output_dir)
 
-        model = Model(text_config, model_config)
-        hist = model.train(y_train, X_train_struc, X_train_text, y_train, X_train_struc, X_train_text)
+        model = NeuralNetworkModel(text_config, model_config)
+        output = model.train(y_train, X_train_struc, X_train_text, y_train, X_train_struc, X_train_text)
 
         # print(hist.history)
         # y_dev, X_dev_struc, X_dev_text)
 
         val_acc_true = 1.0
-        self.assertTrue(np.isclose(val_acc_true, hist.history['val_acc'][-1]))
+        self.assertTrue(np.isclose(val_acc_true, output['val_metric'], atol=1e-4))
 
 
 
@@ -82,11 +113,14 @@ class TestNNModel(unittest.TestCase):
         if not os.path.exists(model_config.output_dir):
             os.makedirs(model_config.output_dir)
 
-        model = Model(text_config, model_config)
-        hist = model.train(y_train, X_train_struc, X_train_text, y_train, X_train_struc, X_train_text)
+        model = NeuralNetworkModel(text_config, model_config)
+        output = model.train(y_train, X_train_struc, X_train_text, y_train, X_train_struc, X_train_text)
+
+        # print(hist.history)
+        # y_dev, X_dev_struc, X_dev_text)
 
         val_acc_true = 1.0
-        self.assertTrue(np.isclose(val_acc_true, hist.history['val_acc'][-1]))
+        self.assertTrue(np.isclose(val_acc_true, output['val_metric']))
 
 
 
@@ -97,18 +131,19 @@ class TestNNModel(unittest.TestCase):
         y_dev, X_dev_struc, X_dev_text = encoder.transform(df_dev)
         y_test, X_test_struc, X_test_text = encoder.transform(df_test)
 
-        print(X_train_text, X_dev_text, X_test_text)
-
         model_config = get_fake_modelconfig('./outputs_test')
         model_config.output_dir = os.path.join(model_config.output_dir, 'dense_mlp')
         if not os.path.exists(model_config.output_dir):
             os.makedirs(model_config.output_dir)
 
-        model = Model(text_config=None, model_config=model_config)
-        hist = model.train(y_train, X_train_struc, X_train_text, y_train, X_train_struc, X_train_text)
+        model = NeuralNetworkModel(text_config=None, model_config=model_config)
+        output = model.train(y_train, X_train_struc, X_train_text, y_train, X_train_struc, X_train_text)
+
+        # print(hist.history)
+        # y_dev, X_dev_struc, X_dev_text)
 
         val_acc_true = 1.0
-        self.assertTrue(np.isclose(val_acc_true, hist.history['val_acc'][-1]))
+        self.assertTrue(np.isclose(val_acc_true, output['val_metric'], atol=1e-2))
 
 
 
@@ -136,11 +171,14 @@ class TestNNModel(unittest.TestCase):
         if not os.path.exists(model_config.output_dir):
             os.makedirs(model_config.output_dir)
 
-        model = Model(text_config, model_config)
-        hist = model.train(y_train, X_train_struc, X_train_text, y_train, X_train_struc, X_train_text)
+        model = NeuralNetworkModel(text_config, model_config)
+        output = model.train(y_train, X_train_struc, X_train_text, y_train, X_train_struc, X_train_text)
+
+        # print(hist.history)
+        # y_dev, X_dev_struc, X_dev_text)
 
         val_acc_true = 1.0
-        self.assertTrue(np.isclose(val_acc_true, hist.history['val_acc'][-1]))
+        self.assertTrue(np.isclose(val_acc_true, output['val_metric']))
 
 
     def test_textdata_only_tfidf(self):
@@ -160,17 +198,86 @@ class TestNNModel(unittest.TestCase):
         if not os.path.exists(model_config.output_dir):
             os.makedirs(model_config.output_dir)
 
-        model = Model(text_config, model_config)
-        hist = model.train(y_train, X_train_struc, X_train_text, y_train, X_train_struc, X_train_text)
+        model = NeuralNetworkModel(text_config, model_config)
+        output = model.train(y_train, X_train_struc, X_train_text, y_train, X_train_struc, X_train_text)
+
+        # print(hist.history)
+        # y_dev, X_dev_struc, X_dev_text)
 
         val_acc_true = 1.0
-        self.assertTrue(np.isclose(val_acc_true, hist.history['val_acc'][-1]))
+        self.assertTrue(np.isclose(val_acc_true, output['val_metric']))
 
+    def test_logistic_regression(self):
+        df_train, df_dev, df_test, metadata = get_fake_dataset(with_text_col=True, text_only=True)
+        
+        text_config = Mapping()
+        text_config.mode = 'tfidf'
+        text_config.max_words = 20
+
+        encoder = Encoder(metadata, text_config=text_config)
+        y_train, X_train_struc, X_train_text = encoder.fit_transform(df_train)
+        y_dev, X_dev_struc, X_dev_text = encoder.transform(df_dev)
+        y_test, X_test_struc, X_test_text = encoder.transform(df_test)
+
+        model_config = get_fake_lr_modelconfig('./outputs_test')
+        model_config.output_dir = os.path.join(model_config.output_dir, 'tfidf_text_only')
+        if not os.path.exists(model_config.output_dir):
+            os.makedirs(model_config.output_dir)
+
+        model = LogisticRegressionModel(text_config, model_config)
+        output = model.train(y_train, X_train_struc, X_train_text, y_train, X_train_struc, X_train_text)
+
+        val_acc_true = 1.0
+        self.assertTrue(np.isclose(val_acc_true, output['val_metric']))
+
+    def test_svm(self):
+        df_train, df_dev, df_test, metadata = get_fake_dataset(with_text_col=True, text_only=True)
+        
+        text_config = Mapping()
+        text_config.mode = 'tfidf'
+        text_config.max_words = 20
+
+        encoder = Encoder(metadata, text_config=text_config)
+        y_train, X_train_struc, X_train_text = encoder.fit_transform(df_train)
+        y_dev, X_dev_struc, X_dev_text = encoder.transform(df_dev)
+        y_test, X_test_struc, X_test_text = encoder.transform(df_test)
+
+        model_config = get_fake_svm_modelconfig('./outputs_test')
+        model_config.output_dir = os.path.join(model_config.output_dir, 'tfidf_text_only')
+        if not os.path.exists(model_config.output_dir):
+            os.makedirs(model_config.output_dir)
+
+        model = SVMModel(text_config, model_config)
+        output = model.train(y_train, X_train_struc, X_train_text, y_train, X_train_struc, X_train_text)
+
+        val_acc_true = 1.0
+        self.assertTrue(np.isclose(val_acc_true, output['val_metric']))
+
+    def test_random_forest(self):
+        df_train, df_dev, df_test, metadata = get_fake_dataset(with_text_col=True, text_only=True)
+        
+        text_config = Mapping()
+        text_config.mode = 'tfidf'
+        text_config.max_words = 20
+
+        encoder = Encoder(metadata, text_config=text_config)
+        y_train, X_train_struc, X_train_text = encoder.fit_transform(df_train)
+        y_dev, X_dev_struc, X_dev_text = encoder.transform(df_dev)
+        y_test, X_test_struc, X_test_text = encoder.transform(df_test)
+
+        model_config = get_fake_rf_modelconfig('./outputs_test')
+        model_config.output_dir = os.path.join(model_config.output_dir, 'tfidf_text_only')
+        if not os.path.exists(model_config.output_dir):
+            os.makedirs(model_config.output_dir)
+
+        model = RandomForestModel(text_config, model_config)
+        output = model.train(y_train, X_train_struc, X_train_text, y_train, X_train_struc, X_train_text)
+
+        val_acc_true = 1.0
+        self.assertTrue(np.isclose(val_acc_true, output['val_metric']))
 
     def test_skip_connections(self):
         pass
-
-
 
 
 

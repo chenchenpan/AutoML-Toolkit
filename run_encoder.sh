@@ -1,6 +1,6 @@
-export DATA_DIR=$HOME/projects/Amplify-AutoML-Toolkit/Demo_data
-export GLOVE_DIR=$HOME/projects/Predict-The-Success-of-Crowdfunding/glove
-export OUTPUT_DIR=$HOME/projects/Amplify-AutoML-Toolkit/encoded_data_struc_only
+export DATA_DIR=/datadrive/projects/Amplify-AutoML-Toolkit/Demo_data
+export GLOVE_DIR=/datadrive/projects/glove
+export OUTPUT_DIR=/datadrive/projects/Amplify-AutoML-Toolkit/encoded_data
 
 
 python encoder.py --data_dir $DATA_DIR \
@@ -10,11 +10,11 @@ python encoder.py --data_dir $DATA_DIR \
 				  --dev_file comb_dev.tsv \
 				  --test_file comb_test.tsv \
 				  --use_text_features True \
-				  --encode_text_with tfidf \
-				  --max_words 20 \
-				  --glove_file $GLOVE_DIR/glove.6B.50d.txt \
+				  --encode_text_with glove\
+				  --glove_file $GLOVE_DIR/glove.6B.100d.txt \
+				  --max_words 20\
 				  --max_sequence_length 5\
-				  --embedding_dim 50
+				  --embedding_dim 100
 
 
 

@@ -12,7 +12,8 @@ from keras.layers.embeddings import Embedding
 from keras.callbacks import EarlyStopping, TensorBoard, ModelCheckpoint
 from encoder import Encoder
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn import linear_model, datasets
+from sklearn import linear_model
+from sklearn.linear_model import LinearRegression
 from sklearn import svm
 from sklearn.metrics import accuracy_score, mean_squared_error
 
@@ -104,7 +105,8 @@ def get_model_cls(model_type):
         'mlp': NeuralNetworkModel,
         'logistic_regression': LogisticRegressionModel,
         'svm': SVMModel,
-        'random_forest': RandomForestModel
+        'random_forest': RandomForestModel,
+        'linear_regression': LinearRegressionModel
     }
     return model_cls_dict[model_type]
 
@@ -223,7 +225,7 @@ class NeuralNetworkModel(Model):
                  epochs=self.model_config.n_epochs, 
                  batch_size=self.model_config.batch_size,
                  verbose = self.model_config.verbose)
-        val_metric = self.hist.history['val_acc'][-1]
+        val_metric = 1 - self.hist.history['val_acc'][-1]
         return {'val_metric': val_metric}
 
     
@@ -272,7 +274,8 @@ class LogisticRegressionModel(SklearnModel):
         X_dev = np.concatenate(X_dev_list, axis=-1)
         dev_pred = self.model.predict(X_dev)
         val_acc = accuracy_score(y_dev, dev_pred)
-        return {'val_metric': val_acc}
+        val_error_rate = 1 - val_acc
+        return {'val_metric': val_error_rate}
 
 
 class RandomForestModel(SklearnModel):     
@@ -302,7 +305,8 @@ class RandomForestModel(SklearnModel):
         dev_pred = self.model.predict(X_dev)
         if self.model_config.task_type == 'classification':
             val_acc = accuracy_score(y_dev, dev_pred)
-            return {'val_metric': val_acc}
+            val_error_rate = 1 - val_acc
+            return {'val_metric': val_error_rate}
         elif self.model_config.task_type == 'regression':
             val_mse = mean_squared_error(y_dev, dev_pred)
             return {'val_metric': val_mse}
@@ -338,7 +342,8 @@ class SVMModel(SklearnModel):
         dev_pred = self.model.predict(X_dev)
         if self.model_config.task_type == 'classification':
             val_acc = accuracy_score(y_dev, dev_pred)
-            return {'val_metric': val_acc}
+            val_error_rate = 1 - val_acc
+            return {'val_metric': val_error_rate}
         elif elf.model_config.task_type == 'regression':
             val_mse = mean_squared_error(y_dev, dev_pred)
             return {'val_metric': val_mse}
@@ -346,16 +351,23 @@ class SVMModel(SklearnModel):
             raise ValueError('Unknown task type: {}'.format(self.model_config.task_type))
 
 
-class LinearRegressionModel(object):
-    def __init__(self, text_config, model_config):
-        self.text_config = text_config
-        self.model_config = model_config           
+class LinearRegressionModel(SklearnModel):          
 
     def train(self, y_train, X_train_struc, X_train_text, y_dev, X_dev_struc, X_dev_text):
-        pass
-    
-    def predict(self, y_test, X_test_struc, X_test_text):
-        pass
+        X_train_list = filter_none([X_train_struc, X_train_text])
+        X_train = np.concatenate(X_train_list, axis=-1)
+        print('X_train: {}'.format(X_train.shape))
+        self.model = linear_model.LinearRegression()
+        self.model.fit(X_train, y_train)
 
-    def evaluate(self, y_test, X_test_struc, X_test_text):
-        pass
+        model_path = os.path.join(self.model_config.output_dir, 'model.pkl')
+        with open(model_path, 'wb') as f:
+            pickle.dump(self.model, f)
+
+        X_dev_list = filter_none([X_dev_struc, X_dev_text])
+        X_dev = np.concatenate(X_dev_list, axis=-1)
+        dev_pred = self.model.predict(X_dev)
+        val_mse = mean_squared_error(y_dev, dev_pred)
+        return {'val_metric': val_mse}
+    
+   

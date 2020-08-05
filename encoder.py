@@ -155,18 +155,18 @@ def main():
     y_dev, X_dev_struc, X_dev_text = encoder.transform(df_dev)
     y_test, X_test_struc, X_test_text = encoder.transform(df_test)
 
-    if encoder.text_config.mode == 'glove':
+    if args.use_text_features and encoder.text_config.mode == 'glove':
         f_path = os.path.join(path_to_save, 'embedding_matrix.npy')
         text_config.embedding_matrix_path = f_path
         with open(f_path, 'wb') as f:
             np.save(f, encoder.embedding_matrix)
 
-    if text_config is not None:
+    if encoder.text_config is not None:
         text_config_path = os.path.join(path_to_save, 'text_config.json')
         if encoder.text_config.mode == 'glove':
-            del text_config.embeddings_index
+            del encoder.text_config.embeddings_index
         with open(text_config_path, 'w') as f:
-            json.dump(text_config, f)
+            json.dump(encoder.text_config, f)
 
     if encoder.scaler is not None:
         scaler_path = os.path.join(path_to_save, 'scaler.pkl')

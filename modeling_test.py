@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 from encoder import Encoder, Mapping, open_glove
 from encoder_test import get_fake_dataset
-from modeling import LogisticRegressionModel, SVMModel, RandomForestModel, NeuralNetworkModel
+from modeling import LogisticRegressionModel, SVMModel, RandomForestModel, NeuralNetworkModel, LinearRegressionModel
 
 
 def get_fake_modelconfig(output_path):
@@ -22,9 +22,9 @@ def get_fake_modelconfig(output_path):
     model_config.optimizer = 'adam' ## 'adam', 'sgd', 'rmsprop'
     model_config.learning_rate = 0.01
     model_config.clipnorm = 5.0
-    model_config.patience = 2
+    model_config.patience = 5
     model_config.output_dir = output_path
-    model_config.n_epochs = 5
+    model_config.n_epochs = 10
     model_config.batch_size = 1
     model_config.verbose = 0
     return model_config
@@ -46,7 +46,7 @@ def get_fake_rf_modelconfig(output_path):
     model_config.num_classes = 3 ## number of classes or number of outputs
     model_config.model_type = 'random_forest' ## default is 'mlp', can be 'skip_connections'
     model_config.output_dir = output_path
-    model_config.n_trees = 0.1
+    model_config.n_trees = 4
     return model_config
 
 
@@ -57,6 +57,16 @@ def get_fake_svm_modelconfig(output_path):
     model_config.model_type = 'svm' ## default is 'mlp', can be 'skip_connections'
     model_config.output_dir = output_path
     model_config.C = 0.1
+    return model_config
+
+
+def get_fake_linear_regression_modelconfig(output_path):
+    model_config = Mapping()
+    model_config.task_type = 'regression' ## 'classification' or 'regression'
+    model_config.num_classes = 3 ## number of classes or number of outputs
+    model_config.model_type = 'linear_regression' ## default is 'mlp', can be 'skip_connections'
+    model_config.output_dir = output_path
+    # model_config.C = 0.1
     return model_config
 
 
@@ -91,8 +101,8 @@ class TestModel(unittest.TestCase):
         # print(hist.history)
         # y_dev, X_dev_struc, X_dev_text)
 
-        val_acc_true = 1.0
-        self.assertTrue(np.isclose(val_acc_true, output['val_metric'], atol=1e-4))
+        val_metric_true = 0.0
+        self.assertTrue(np.isclose(val_metric_true, output['val_metric'], atol=1e-4))
 
 
 
@@ -119,8 +129,8 @@ class TestModel(unittest.TestCase):
         # print(hist.history)
         # y_dev, X_dev_struc, X_dev_text)
 
-        val_acc_true = 1.0
-        self.assertTrue(np.isclose(val_acc_true, output['val_metric']))
+        val_metric_true = 0.0
+        self.assertTrue(np.isclose(val_metric_true, output['val_metric']))
 
 
 
@@ -142,8 +152,8 @@ class TestModel(unittest.TestCase):
         # print(hist.history)
         # y_dev, X_dev_struc, X_dev_text)
 
-        val_acc_true = 1.0
-        self.assertTrue(np.isclose(val_acc_true, output['val_metric'], atol=1e-2))
+        val_metric_true = 0.0
+        self.assertTrue(np.isclose(val_metric_true, output['val_metric'], atol=1e-2))
 
 
 
@@ -177,8 +187,9 @@ class TestModel(unittest.TestCase):
         # print(hist.history)
         # y_dev, X_dev_struc, X_dev_text)
 
-        val_acc_true = 1.0
-        self.assertTrue(np.isclose(val_acc_true, output['val_metric']))
+        val_metric_true = 0.0
+        print(output['val_metric'])
+        self.assertTrue(np.isclose(val_metric_true, output['val_metric']))
 
 
     def test_textdata_only_tfidf(self):
@@ -204,8 +215,8 @@ class TestModel(unittest.TestCase):
         # print(hist.history)
         # y_dev, X_dev_struc, X_dev_text)
 
-        val_acc_true = 1.0
-        self.assertTrue(np.isclose(val_acc_true, output['val_metric']))
+        val_metric_true = 0.0
+        self.assertTrue(np.isclose(val_metric_true, output['val_metric']))
 
     def test_logistic_regression(self):
         df_train, df_dev, df_test, metadata = get_fake_dataset(with_text_col=True, text_only=True)
@@ -227,8 +238,8 @@ class TestModel(unittest.TestCase):
         model = LogisticRegressionModel(text_config, model_config)
         output = model.train(y_train, X_train_struc, X_train_text, y_train, X_train_struc, X_train_text)
 
-        val_acc_true = 1.0
-        self.assertTrue(np.isclose(val_acc_true, output['val_metric']))
+        val_metric_true = 0.0
+        self.assertTrue(np.isclose(val_metric_true, output['val_metric']))
 
     def test_svm(self):
         df_train, df_dev, df_test, metadata = get_fake_dataset(with_text_col=True, text_only=True)
@@ -250,8 +261,8 @@ class TestModel(unittest.TestCase):
         model = SVMModel(text_config, model_config)
         output = model.train(y_train, X_train_struc, X_train_text, y_train, X_train_struc, X_train_text)
 
-        val_acc_true = 1.0
-        self.assertTrue(np.isclose(val_acc_true, output['val_metric']))
+        val_metric_true = 0.0
+        self.assertTrue(np.isclose(val_metric_true, output['val_metric']))
 
     def test_random_forest(self):
         df_train, df_dev, df_test, metadata = get_fake_dataset(with_text_col=True, text_only=True)
@@ -273,8 +284,34 @@ class TestModel(unittest.TestCase):
         model = RandomForestModel(text_config, model_config)
         output = model.train(y_train, X_train_struc, X_train_text, y_train, X_train_struc, X_train_text)
 
-        val_acc_true = 1.0
-        self.assertTrue(np.isclose(val_acc_true, output['val_metric']))
+        val_metric_true = 0.0
+        self.assertTrue(np.isclose(val_metric_true, output['val_metric']))
+
+    
+    def test_linear_regression(self):
+        df_train, df_dev, df_test, metadata = get_fake_dataset(with_text_col=True, text_only=True)
+        
+        text_config = Mapping()
+        text_config.mode = 'tfidf'
+        text_config.max_words = 20
+
+        encoder = Encoder(metadata, text_config=text_config)
+        y_train, X_train_struc, X_train_text = encoder.fit_transform(df_train)
+        y_dev, X_dev_struc, X_dev_text = encoder.transform(df_dev)
+        y_test, X_test_struc, X_test_text = encoder.transform(df_test)
+
+        model_config = get_fake_linear_regression_modelconfig('./outputs_test')
+        model_config.output_dir = os.path.join(model_config.output_dir, 'tfidf_text_only')
+        if not os.path.exists(model_config.output_dir):
+            os.makedirs(model_config.output_dir)
+
+        model = LinearRegressionModel(text_config, model_config)
+        output = model.train(y_train, X_train_struc, X_train_text, y_train, X_train_struc, X_train_text)
+
+        val_metric_true = 0.0
+        self.assertTrue(np.isclose(val_metric_true, output['val_metric']))
+
+
 
     def test_skip_connections(self):
         pass

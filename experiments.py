@@ -69,6 +69,9 @@ def main():
 
     args = parser.parse_args()
 
+    if args.model_type == 'bert':
+        bert_classifier.run_bert(do_lower_case, init_checkpoint)
+        return
     
     if args.data_name is not None and args.encoded_data_dir is not None:
         path_to_data = os.path.join(args.encoded_data_dir, args.data_name)

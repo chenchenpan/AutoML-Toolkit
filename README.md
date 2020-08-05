@@ -1,4 +1,4 @@
-# Amplify-AutoML-Toolkit
+# AutoML-Toolkit
 An internship project
 
 # Demo Data

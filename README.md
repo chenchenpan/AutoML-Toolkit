@@ -28,15 +28,7 @@ cd ~/projects/
 cd ~/projects/
 git clone https://github.com/chenchenpan/AutoML-Toolkit.git
 
-cd ~/projects/Amplify-AutoML-Toolkit/
-mkdir resource
-mkdir resource/glove
-cd ~/projects/Amplify-AutoML-Toolkit/resource/glove
-wget http://nlp.stanford.edu/data/glove.6B.zip
-unzip glove.6B.zip -d glove/
-rm glove.6B.zip
-
-cd ~/projects/Amplify-AutoML-Toolkit/
+cd ~/projects/AutoML-Toolkit/
 chmod 777 vm_setup.sh
 ./vm_setup.sh
 ```
@@ -45,11 +37,19 @@ chmod 777 vm_setup.sh
 ### Define metadata and search space
 Use the 'define_metadata_and_search_space.ipynb' to create the metadata file for your tabular data and define the search space to the following experiments. The file we provided contains an example to create metadata and search space for kickstarter demo data. You can modify that and create your own.
 
-### Start Kickstarter experiment
+### Start NN model with GloVe experiment
 ```
+cd ~/projects/AutoML-Toolkit/
+mkdir resource
+mkdir resource/glove
+cd ~/projects/AutoML-Toolkit/resource/glove
+wget http://nlp.stanford.edu/data/glove.6B.zip
+unzip glove.6B.zip -d glove/
+rm glove.6B.zip
+
 screen -S demo
 source ~/project/envs/lab/bin/activate
-cd ~/projects/Amplify-AutoML-Toolkit/demo
+cd ~/projects/AutoML-Toolkit/demo
 
 chmod 777 run_nn_experiment.sh
 ./run_nn_experiment.sh
@@ -60,13 +60,13 @@ chmod 777 run_nn_experiment.sh
 ```
 screen -S bert
 source ~/project/envs/lab/bin/activate
-cd ~/projects/Amplify-AutoML-Toolkit/resource
+cd ~/projects/AutoML-Toolkit/resource
 mkdir bert
 wget https://storage.googleapis.com/bert_models/2020_02_20/uncased_L-2_H-128_A-2.zip
 unzip uncased_L-2_H-128_A-2.zip
 rm uncased_L-2_H-128_A-2.zip
 
-cd ~/projects/Amplify-AutoML-Toolkit/demo
+cd ~/projects/AutoML-Toolkit/demo
 chmod 777 run_bert_experiment.sh
 ./run_bert_experiment.sh
 
@@ -80,7 +80,7 @@ All the models and results about the experiments will be saved in `~/projects/Am
 ```
 screen -S tb
 source ~/project/envs/lab/bin/activate
-cd  ~/projects/Amplify-AutoML-Toolkit/demo
+cd  ~/projects/AutoML-Toolkit/demo
 tensorboard --logdir=outputs
 ```
 To see the tensorboard, in the browser, go to 

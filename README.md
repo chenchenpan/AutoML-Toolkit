@@ -54,15 +54,11 @@ cd ~/projects/Amplify-AutoML-Toolkit/demo
 mkdir encoded_data
 mkdir outputs
 
-chmod 777 run_encoder.sh
-./run_encoder.sh
-
-chmod 777 run_experiment.sh
-./run_experiment.sh
+chmod 777 run_nn_experiment.sh
 
 ```
 
-All the models and results about this experiment will be saved in `~/projects/Amplify-AutoML-Toolkit/outputs`.
+All the models and results about this experiment will be saved in `~/projects/Amplify-AutoML-Toolkit/demo/outputs`.
 
 
 ### Start tensorboard to monitor experiment

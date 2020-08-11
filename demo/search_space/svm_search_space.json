@@ -1,6 +1,6 @@
 {
-    "n_trees": [
-        "log_int",
+    "C": [
+        "log_cont",
         [
             0.01,
             100.0

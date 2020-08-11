@@ -34,14 +34,14 @@ def main():
 
     parser = argparse.ArgumentParser()
 
-    # parameters for select input data and metedata configure files
-    parser.add_argument('--data_dir', type=str,
-        # default='/data/home/t-chepan/projects/MS-intern-project/raw_data',
-        help=('directory to load the raw data.'))
+    # # parameters for select input data and metedata configure files
+    # parser.add_argument('--data_dir', type=str,
+    #     # default='/data/home/t-chepan/projects/MS-intern-project/raw_data',
+    #     help=('directory to load the raw data.'))
 
-    parser.add_argument('--data_name', type=str,
-        # default='kickstarter',
-        help=('which data will be used? (kickstarter Or indiegogo?)'))
+    # parser.add_argument('--data_name', type=str,
+    #     # default='kickstarter',
+    #     help=('which data will be used? (kickstarter Or indiegogo?)'))
 
     parser.add_argument('--metadata_file', type=str,
         # default='metadata.json',
@@ -80,10 +80,6 @@ def main():
         # default='/data/home/t-chepan/projects/MS-intern-project/raw_data',
         help=('what is the maximum sequence length for encoding text?'))
 
-    parser.add_argument('--embedding_dim', type=int,
-        # default='/data/home/t-chepan/projects/MS-intern-project/raw_data',
-        help=('what is the embedding_dim of the GloVe?'))
-
     parser.add_argument('--output_dir', type=str,
         # default='/data/home/t-chepan/projects/MS-intern-project/raw_data',
         help=('directory to save the encoded data.'))
@@ -92,41 +88,46 @@ def main():
     args = parser.parse_args()
 
     ### load raw data and related metadata configure file
-    if args.data_name is not None and args.data_dir is not None:
-        path_to_data = os.path.join(args.data_dir, args.data_name)
-        path_to_save = os.path.join(args.output_dir, args.data_name)
-        if not os.path.exists(path_to_save):
-            os.makedirs(path_to_save)
+    # if args.data_name is not None and args.data_dir is not None:
+    #     path_to_data = os.path.join(args.data_dir, args.data_name)
+    #     path_to_save = os.path.join(args.output_dir, args.data_name)
+    #     if not os.path.exists(path_to_save):
+    #         os.makedirs(path_to_save)
 
-    elif args.data_name is None and args.data_dir is not None:
-        path_to_data = args.data_dir
-        path_to_save = args.output_dir
+    # elif args.data_name is None and args.data_dir is not None:
+    #     path_to_data = args.data_dir
+    #     path_to_save = args.output_dir
 
-    else:
-        raise argparse.ArgumentTypeError(args.data_name + ' or ' + args.data_dir + " can't be recognized.")
+    # else:
+    #     raise argparse.ArgumentTypeError(args.data_name + ' or ' + args.data_dir + " can't be recognized.")
+
+    # if not os.path.exists(path_to_data):
+    #     os.makedirs(path_to_data)
+
+    # if not os.path.exists(path_to_save):
+    #     os.makedirs(path_to_save)
+
+    # train_path = os.path.join(path_to_data, args.train_file)
+    # dev_path = os.path.join(path_to_data, args.dev_file)
+    # test_path = os.path.join(path_to_data, args.test_file)
+
 
     print("Start to load data...")
-
-    if not os.path.exists(path_to_data):
-        os.makedirs(path_to_data)
-
+    
+    path_to_save = args.output_dir
     if not os.path.exists(path_to_save):
         os.makedirs(path_to_save)
-
-    train_path = os.path.join(path_to_data, args.train_file)
-    dev_path = os.path.join(path_to_data, args.dev_file)
-    test_path = os.path.join(path_to_data, args.test_file)
-    df_train = pd.read_csv(train_path, sep='\t')
-    df_dev = pd.read_csv(dev_path, sep='\t')
-    df_test = pd.read_csv(test_path, sep='\t')
-
+        
+    df_train = read_file(args.train_file)
+    df_dev = read_file(args.dev_file)
+    df_test = read_file(args.test_file)
+    
     print('*' * 50)
     print('training set size is {}'.format(df_train.shape[0]))
     print('dev set size is {}'.format(df_dev.shape[0]))
     print('test set size is {}'.format(df_test.shape[0]))
 
-    metadata_path = os.path.join(path_to_data, args.metadata_file)
-    with open(metadata_path, 'r') as f:
+    with open(args.metadata_file, 'r') as f:
         metadata = json.load(f)
 
     print("Processing data...")
@@ -140,8 +141,8 @@ def main():
         if mode == 'glove':
             # glove_file_path = os.path.join(args.glove_dir, args.glove_file)
             text_config.maxlen = args.max_sequence_length
-            text_config.embedding_dim = args.embedding_dim
             text_config.embeddings_index = open_glove(args.glove_file)
+            text_config.embedding_dim = list(text_config.embeddings_index.values())[0].shape[-1]
 
         if mode != 'glove' and mode != 'tfidf':
             raise argparse.ArgumentTypeError(mode, "can't be recognized.")
@@ -198,6 +199,17 @@ def main():
 
     print('Saved the encoded text inputs!')
 
+
+def read_file(path):
+    filename, file_extension = os.path.splitext(path)
+    if file_extension == '.csv':
+        sep = ','
+    elif file_extension == '.tsv':
+        sep = '\t'
+    else:
+        raise ValueError('Unknown type of file: {}. Please add .csv or .tsv.'.format(path))
+    df = pd.read_csv(path, sep=sep)
+    return df
 
 
 ## use dict like object
@@ -560,7 +572,6 @@ class Encoder(object):
             y, self.y_encoder, X_struc, X_text, self.vectorizer, self.scaler, self.tokenizer, self.embedding_matrix = encode_dataset(
                 df, self.metadata, mode='glove', max_words=self.text_config.max_words, maxlen=self.text_config.maxlen, 
                 embedding_dim=self.text_config.embedding_dim, embeddings_index=self.text_config.embeddings_index)
-
         else:
             raise ValueError('Unknown type of text_config: {}'.format(self.text_config.mode))
 

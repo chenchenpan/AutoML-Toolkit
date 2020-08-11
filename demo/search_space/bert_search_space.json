@@ -1,0 +1,38 @@
+{
+    "learning_rate": [
+        "log_cont",
+        [
+            1e-06,
+            0.0001
+        ]
+    ],
+    "n_epochs": [
+        "linear_int",
+        [
+            1,
+            5
+        ]
+    ],
+    "batch_size": [
+        "category",
+        [
+            16,
+            32,
+            64
+        ]
+    ],
+    "warmup_proportion": [
+        "linear_cont",
+        [
+            0.0,
+            0.2
+        ]
+    ],
+    "do_lower_case": [
+        "category",
+        [
+            true,
+            false
+        ]
+    ]
+}

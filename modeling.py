@@ -1,5 +1,3 @@
-# we are using TensorFlow 2.0 here
-
 import os
 import tensorflow as tf
 import numpy as np
@@ -10,7 +8,7 @@ from keras import optimizers
 from keras.layers import Input, Dense, LSTM, Dropout, Flatten, Concatenate
 from keras.layers.embeddings import Embedding
 from keras.callbacks import EarlyStopping, TensorBoard, ModelCheckpoint
-from encoder import Encoder
+from encode_data import Encoder
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn import linear_model
 from sklearn.linear_model import LinearRegression
@@ -330,7 +328,7 @@ class SVMModel(SklearnModel):
             y_train = onehot2id(y_train)
             y_dev = onehot2id(y_dev)
         X_train_list = filter_none([X_train_struc, X_train_text])
-        X_train = np.concatenate(X_train_list)
+        X_train = np.concatenate(X_train_list, axis=-1)
         self.model.fit(X_train, y_train)
 
         model_path = os.path.join(self.model_config.output_dir, 'model.json')

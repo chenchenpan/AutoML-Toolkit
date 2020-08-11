@@ -1,8 +1,8 @@
 import os
 import unittest
 import numpy as np
-from encoder import Encoder, Mapping, open_glove
-from encoder_test import get_fake_dataset
+from encode_data import Encoder, Mapping, open_glove
+from encode_data_test import get_fake_dataset
 from modeling import LogisticRegressionModel, SVMModel, RandomForestModel, NeuralNetworkModel, LinearRegressionModel
 
 
@@ -74,7 +74,7 @@ class TestModel(unittest.TestCase):
     def test_lstm(self):
         df_train, df_dev, df_test, metadata = get_fake_dataset(with_text_col=True)
 
-        glove_file_path = 'glove/glove.6B.50d.txt'# need be changed to where you store the pre-trained GloVe file.
+        glove_file_path = 'resource/glove/glove.6B.50d.txt'# need be changed to where you store the pre-trained GloVe file.
         
         text_config = Mapping()
         text_config.mode = 'glove'
@@ -90,7 +90,7 @@ class TestModel(unittest.TestCase):
 
         text_config.embedding_matrix = encoder.embedding_matrix
 
-        model_config = get_fake_modelconfig('./outputs_test')
+        model_config = get_fake_modelconfig('tmp/outputs_test')
         model_config.output_dir = os.path.join(model_config.output_dir, 'lstm')
         if not os.path.exists(model_config.output_dir):
             os.makedirs(model_config.output_dir)
@@ -118,7 +118,7 @@ class TestModel(unittest.TestCase):
         y_dev, X_dev_struc, X_dev_text = encoder.transform(df_dev)
         y_test, X_test_struc, X_test_text = encoder.transform(df_test)
 
-        model_config = get_fake_modelconfig('./outputs_test')
+        model_config = get_fake_modelconfig('tmp/outputs_test')
         model_config.output_dir = os.path.join(model_config.output_dir, 'tfidf_text_only')
         if not os.path.exists(model_config.output_dir):
             os.makedirs(model_config.output_dir)
@@ -141,7 +141,7 @@ class TestModel(unittest.TestCase):
         y_dev, X_dev_struc, X_dev_text = encoder.transform(df_dev)
         y_test, X_test_struc, X_test_text = encoder.transform(df_test)
 
-        model_config = get_fake_modelconfig('./outputs_test')
+        model_config = get_fake_modelconfig('tmp/outputs_test')
         model_config.output_dir = os.path.join(model_config.output_dir, 'dense_mlp')
         if not os.path.exists(model_config.output_dir):
             os.makedirs(model_config.output_dir)
@@ -160,7 +160,7 @@ class TestModel(unittest.TestCase):
     def test_textdata_only_glove(self):
         df_train, df_dev, df_test, metadata = get_fake_dataset(with_text_col=True, text_only=True)
 
-        glove_file_path = 'glove/glove.6B.50d.txt'# need be changed to where you store the pre-trained GloVe file.
+        glove_file_path = 'resource/glove/glove.6B.50d.txt'# need be changed to where you store the pre-trained GloVe file.
         
         text_config = Mapping()
         text_config.mode = 'glove'
@@ -176,7 +176,7 @@ class TestModel(unittest.TestCase):
 
         text_config.embedding_matrix = encoder.embedding_matrix
 
-        model_config = get_fake_modelconfig('./outputs_test')
+        model_config = get_fake_modelconfig('tmp/outputs_test')
         model_config.output_dir = os.path.join(model_config.output_dir, 'lstm_text_only')
         if not os.path.exists(model_config.output_dir):
             os.makedirs(model_config.output_dir)
@@ -204,7 +204,7 @@ class TestModel(unittest.TestCase):
         y_dev, X_dev_struc, X_dev_text = encoder.transform(df_dev)
         y_test, X_test_struc, X_test_text = encoder.transform(df_test)
 
-        model_config = get_fake_modelconfig('./outputs_test')
+        model_config = get_fake_modelconfig('tmp/outputs_test')
         model_config.output_dir = os.path.join(model_config.output_dir, 'tfidf_text_only')
         if not os.path.exists(model_config.output_dir):
             os.makedirs(model_config.output_dir)
@@ -230,7 +230,7 @@ class TestModel(unittest.TestCase):
         y_dev, X_dev_struc, X_dev_text = encoder.transform(df_dev)
         y_test, X_test_struc, X_test_text = encoder.transform(df_test)
 
-        model_config = get_fake_lr_modelconfig('./outputs_test')
+        model_config = get_fake_lr_modelconfig('tmp/outputs_test')
         model_config.output_dir = os.path.join(model_config.output_dir, 'tfidf_text_only')
         if not os.path.exists(model_config.output_dir):
             os.makedirs(model_config.output_dir)
@@ -253,7 +253,7 @@ class TestModel(unittest.TestCase):
         y_dev, X_dev_struc, X_dev_text = encoder.transform(df_dev)
         y_test, X_test_struc, X_test_text = encoder.transform(df_test)
 
-        model_config = get_fake_svm_modelconfig('./outputs_test')
+        model_config = get_fake_svm_modelconfig('tmp/outputs_test')
         model_config.output_dir = os.path.join(model_config.output_dir, 'tfidf_text_only')
         if not os.path.exists(model_config.output_dir):
             os.makedirs(model_config.output_dir)
@@ -276,7 +276,7 @@ class TestModel(unittest.TestCase):
         y_dev, X_dev_struc, X_dev_text = encoder.transform(df_dev)
         y_test, X_test_struc, X_test_text = encoder.transform(df_test)
 
-        model_config = get_fake_rf_modelconfig('./outputs_test')
+        model_config = get_fake_rf_modelconfig('tmp/outputs_test')
         model_config.output_dir = os.path.join(model_config.output_dir, 'tfidf_text_only')
         if not os.path.exists(model_config.output_dir):
             os.makedirs(model_config.output_dir)
@@ -300,7 +300,7 @@ class TestModel(unittest.TestCase):
         y_dev, X_dev_struc, X_dev_text = encoder.transform(df_dev)
         y_test, X_test_struc, X_test_text = encoder.transform(df_test)
 
-        model_config = get_fake_linear_regression_modelconfig('./outputs_test')
+        model_config = get_fake_linear_regression_modelconfig('tmp/outputs_test')
         model_config.output_dir = os.path.join(model_config.output_dir, 'tfidf_text_only')
         if not os.path.exists(model_config.output_dir):
             os.makedirs(model_config.output_dir)
@@ -319,41 +319,6 @@ class TestModel(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    if not os.path.exists('tmp'):
+        os.makedirs('tmp')    
     unittest.main()
-
-
-
-# ModelConfig = {
-#     'task_type': {'value': 'classification', 'type': 'fixed'},
-#     'num_outputs': {'value': 2, 'type': 'fixed'},
-#     ''
-# }
-
-
-# self.dropout_rate = dropout_rate
-#         self.n_lstm_layers = n_lstm_layers
-#         self.lstm_hidden_size = lstm_hidden_size
-#         self.hidden_size = hidden_size
-#         self.n_layers = n_layers
-#         self.max_n_epoch = max_n_epoch
-#         self.patience = patience
-#         self.learning_rate = learning_rate
-#         self.useL2 = use_L2regularizer
-#         self.batch_size = batch_size
-#         self.opt = optimizer
-
-# TextConfig = {
-    
-# }
-
-# python preprocessing.y --text_config=""
-
-
-# preprocessed_with_tfidf/text_config.json
-
-
-# python experiment.py --data_dir=preprocessed_with_glove 
-
-
-
-

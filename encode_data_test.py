@@ -1,5 +1,6 @@
+import os
 import unittest
-from encoder import Encoder, Mapping, open_glove
+from encode_data import Encoder, Mapping, open_glove
 import pandas as pd
 import numpy as np
 import json
@@ -183,7 +184,7 @@ class TestEncoder(unittest.TestCase):
     def test_word_embedding(self):
         df_train, df_dev, df_test, metadata = get_fake_dataset(with_text_col=True)
 
-        glove_file_path = 'glove.6B.50d.txt'# need be changed to where you store the pre-trained GloVe file.
+        glove_file_path = 'resource/glove/glove.6B.50d.txt'# need be changed to where you store the pre-trained GloVe file.
         
         text_config = Mapping()
         text_config.mode = 'glove'
@@ -215,7 +216,6 @@ class TestEncoder(unittest.TestCase):
             [2.44948974, 0.        , 1.        , 0.        ],
             [6.12372436, 0.        , 1.        , 0.        ],
             [3.67423461, 0.        , 0.        , 1.        ]])
-        # print(X_dev_text)
         self.assertTrue(np.isclose(X_dev_text_true, X_dev_text).all())
         self.assertTrue(np.isclose(X_dev_struc_true, X_dev_struc).all())
         X_test_text_true = np.array([
@@ -231,4 +231,6 @@ class TestEncoder(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    if not os.path.exists('tmp'):
+        os.makedirs('tmp')    
     unittest.main()

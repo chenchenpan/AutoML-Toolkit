@@ -226,11 +226,11 @@ def sample_modelconfig(search_space, default_model_config):
             model_config[k] = np.random.randint(v[1][0], v[1][1])
             
         if v[0] == 'linear_cont':
-            model_config[k] = np.round(np.random.uniform(v[1][0], v[1][1]), 2)
+            model_config[k] = np.random.uniform(v[1][0], v[1][1])
             
         if v[0] == 'log_cont':
             model_config[k] = np.random.uniform(np.log(v[1][0]), np.log(v[1][1]))
-            model_config[k] = np.round(np.exp(model_config[k]), 5)
+            model_config[k] = np.exp(model_config[k])
         
         if v[0] == 'log_int':
             model_config[k] = np.random.uniform(np.log(v[1][0]), np.log(v[1][1]))

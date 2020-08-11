@@ -1,3 +1,11 @@
+"""
+random search for hyperparameters:
+1. user provide a search space
+2. we generate a set of hyperparameters (as model_config) within this space
+3. feed the medel_config to modeling part
+4. save the model, result and the model_config
+""" 
+
 import argparse
 import os
 import json
@@ -8,28 +16,6 @@ from modeling import Model, get_model_cls
 from bert import bert_classifier
 
 
-"""
-random search for hyperparameters:
-1. user provide a search space
-2. we generate a set of hyperparameters (as model_config) within this space
-3. feed the medel_config to modeling part
-4. save the model, result and the model_config
-""" 
-
-# search_space = {
-#     'hidden_size_dense': ('log_int', [10, 300]),
-#     'hidden_size_lstm': ('log_int', [10, 300]),
-#     'hidden_size_output': ('log_int', [10, 300]),
-#     'learning_rate': ('log_cont', [0.0001, 1]),
-#     'n_layers_dense': ('linear_int', [1, 5]),
-#     'n_layers_lstm': ('linear_int', [1, 5]),
-#     'n_layers_output': ('linear_int', [1, 5]),
-#     'dropout_rate': ('linear_cont', [0, 1]),
-#     'patience': ('category', [20, 50]),
-#     'n_epochs': ('linear_int', [1, 10]),
-#     'batch_size': ('category', [64, 128, 256]),
-#     'optimizer': ('category', ['adam', 'sgd', 'rmsprop'])
-# }
 
 def main():
 

@@ -88,7 +88,7 @@ class TestModel(unittest.TestCase):
         y_dev, X_dev_struc, X_dev_text = encoder.transform(df_dev)
         y_test, X_test_struc, X_test_text = encoder.transform(df_test)
 
-        text_config.embedding_matrix = encoder.embedding_matrix
+        text_config.embedding_matrix = encoder.text_config.embedding_matrix
 
         model_config = get_fake_modelconfig('tmp/outputs_test')
         model_config.output_dir = os.path.join(model_config.output_dir, 'lstm')
@@ -174,7 +174,7 @@ class TestModel(unittest.TestCase):
         y_dev, X_dev_struc, X_dev_text = encoder.transform(df_dev)
         y_test, X_test_struc, X_test_text = encoder.transform(df_test)
 
-        text_config.embedding_matrix = encoder.embedding_matrix
+        text_config.embedding_matrix = encoder.text_config.embedding_matrix
 
         model_config = get_fake_modelconfig('tmp/outputs_test')
         model_config.output_dir = os.path.join(model_config.output_dir, 'lstm_text_only')

@@ -1,7 +1,7 @@
 export DIR=$HOME/projects/Amplify-AutoML-Toolkit
 export DATA_DIR=$DIR/demo/data/raw_data
 export GLOVE_DIR=$DIR/resource/glove
-export ENCODED_DATA_DIR=$DIR/demo/data/encoded_data_comb_glove
+export ENCODED_DATA_DIR=$DIR/demo/data/encoded_data_comb_tfidf
 
 python $DIR/encode_data.py \
        --output_dir $ENCODED_DATA_DIR \

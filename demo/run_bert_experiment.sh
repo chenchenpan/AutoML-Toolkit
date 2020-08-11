@@ -23,4 +23,4 @@ python $DIR/experiments.py \
     --num_classes 2 \
     --model_type bert \
     --bert_dir $BERT_DIR \
-    --num_trials 5
+    --num_trials 20

@@ -198,6 +198,7 @@ def main():
             json.dump(experiment_output, f, indent=4)
 
         model_config_savepath = os.path.join(model_config.output_dir, 'model_config.json')
+        model_config['encoded_data_dir'] = args.encoded_data_dir
         with open(model_config_savepath, 'w') as mf:
             json.dump(model_config, mf, indent=4)
         print('*' * 50)

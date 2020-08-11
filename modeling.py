@@ -8,7 +8,7 @@ from keras import optimizers
 from keras.layers import Input, Dense, LSTM, Dropout, Flatten, Concatenate
 from keras.layers.embeddings import Embedding
 from keras.callbacks import EarlyStopping, TensorBoard, ModelCheckpoint
-from encode_data import Encoder
+from encode_data import Encoder, Mapping
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn import linear_model
 from sklearn.linear_model import LinearRegression
@@ -24,7 +24,7 @@ def dense_block(input_tensor, model_config):
 
 
 def lstm_block(input_tensor, text_config, model_config):
-# trick: need to load embedding_matrix file to text_config.embedding_matrix   
+    # trick: need to load embedding_matrix file to text_config.embedding_matrix   
     embedding_layer = Embedding(input_dim=text_config.embedding_matrix.shape[0],
         output_dim=text_config.embedding_dim, 
         weights=[text_config.embedding_matrix],
@@ -110,8 +110,10 @@ def get_model_cls(model_type):
 
 
 class Model(object):
+
     def __init__(self, text_config, model_config):
-        pass           
+        self.text_config = Mapping(text_config)
+        self.model_config = Mapping(model_config)
 
     def train(self, y_train, X_train_struc, X_train_text, y_dev, X_dev_struc, X_dev_text):
         pass
@@ -125,10 +127,10 @@ class Model(object):
 
 
 class NeuralNetworkModel(Model):
-    def __init__(self, text_config, model_config):
-        self.text_config = text_config
-        self.model_config = model_config               
 
+    def load(self, output_dir):
+        self.model = keras.models.load_model(os.path.join(output_dir, 'model'))
+        
     def train(self, y_train, X_train_struc, X_train_text, y_dev, X_dev_struc, X_dev_text):
         if X_train_struc is not None:
             n_features = X_train_struc.shape[1]
@@ -164,10 +166,6 @@ class NeuralNetworkModel(Model):
         preds = output_block(input_tensor, self.model_config)
 
         input_list = filter_none([input_tensor_struc, input_tensor_text])
-        # input_list = []
-        # for tensor in [input_tensor_struc, input_tensor_text]:
-        #     if tensor is not None:
-        #         input_list.append(tensor)
         self.model = keras.Model(input_list, preds)
         
         if self.model_config.optimizer == 'adam':
@@ -181,23 +179,18 @@ class NeuralNetworkModel(Model):
 
         if self.model_config.task_type == 'classification' and self.model_config.num_classes <= 2:
             self.model.compile(loss='binary_crossentropy',
-                          optimizer=opt,
-                          metrics=['acc'])
+                               optimizer=opt,
+                               metrics=['acc'])
         elif self.model_config.task_type == 'classification' and self.model_config.num_classes > 2:
             self.model.compile(loss='categorical_crossentropy',
-#                                loss='sparse_categorical_crossentropy',
-                          optimizer=opt,
-                          metrics=['acc'])
+                               optimizer=opt,
+                               metrics=['acc'])
         elif self.model_config.task_type == 'regression':
             self.model.compile(loss='mse',
-                          optimizer=opt,
-                          metrics=['mse'])
+                               optimizer=opt,
+                               metrics=['mse'])
         else:
             raise ValueError('Unknown type of task: {}'.format(self.model_config.task_type))
-
-        model_json = self.model.to_json()
-        with open(os.path.join(self.model_config.output_dir, 'model.json'), 'w') as f:
-            f.write(model_json)
 
         checkpointer = ModelCheckpoint(
             filepath=os.path.join(self.model_config.output_dir, 'model_weights.hdf5'),
@@ -206,7 +199,8 @@ class NeuralNetworkModel(Model):
             save_best_only=True)
 
         early_stopping = EarlyStopping(monitor='val_loss', min_delta=0.0, 
-            patience=self.model_config.patience, verbose=1)
+                                       patience=self.model_config.patience, verbose=1,
+                                       restore_best_weights=True)
 
         tensorboard = TensorBoard(log_dir=self.model_config.output_dir, update_freq="batch")
 
@@ -223,18 +217,21 @@ class NeuralNetworkModel(Model):
                  epochs=self.model_config.n_epochs, 
                  batch_size=self.model_config.batch_size,
                  verbose = self.model_config.verbose)
+
+        model_path = os.path.join(self.model_config.output_dir, 'model')
+        self.model.save(model_path)
+        
         val_metric = 1 - self.hist.history['val_acc'][-1]
         return {'val_metric': val_metric}
-
     
-    def predict(self, y_test, X_test_struc, X_test_text):
+    def predict(self, X_test_struc, X_test_text):
         X_test_list = filter_none([X_test_struc, X_test_text])
-        return self.model.predict(X_test_list)
-
-    # def evaluate(self, y_test, X_test_struc, X_test_text):
-    #     X_test_list = filter_none([X_test_struc, X_test_text])
-    #     _, metric = self.model.evaluate(X_test_list, y_test, verbose=self.model_config.verbose)
-    #     return metric
+        output = self.model.predict(X_test_list)
+        if self.model_config.num_classes > 2:
+            preds = np.argmax(output, axis=-1)
+        else:
+            preds = (output > 0.5).astype(int)
+        return preds
 
 
 def onehot2id(labels):
@@ -242,16 +239,22 @@ def onehot2id(labels):
 
 
 class SklearnModel(Model):
-    def __init__(self, text_config, model_config):
-        self.text_config = text_config
-        self.model_config = model_config
 
-    def predict(self, y_test, X_test_struc, X_test_text):
+    def predict(self, X_test_struc, X_test_text):
         X_test_list = filter_none([X_test_struc, X_test_text])
         X_test = np.concatenate(X_test_list, axis=-1)
         return self.model.predict(X_test)
 
+    def load(self, output_dir):
+        with open(os.path.join(output_dir, 'model.pkl'), 'rb') as f:
+            self.model = pickle.load(f)
 
+    def save(self, output_dir):
+        model_path = os.path.join(output_dir, 'model.pkl')
+        with open(model_path, 'wb') as f:
+            pickle.dump(self.model, f)
+        
+    
 class LogisticRegressionModel(SklearnModel):
 
     def train(self, y_train, X_train_struc, X_train_text, y_dev, X_dev_struc, X_dev_text):
@@ -264,10 +267,8 @@ class LogisticRegressionModel(SklearnModel):
         self.model = linear_model.LogisticRegression(C=self.model_config.C)
         self.model.fit(X_train, y_train)
 
-        model_path = os.path.join(self.model_config.output_dir, 'model.pkl')
-        with open(model_path, 'wb') as f:
-            pickle.dump(self.model, f)
-
+        self.save(self.model_config.output_dir)
+        
         X_dev_list = filter_none([X_dev_struc, X_dev_text])
         X_dev = np.concatenate(X_dev_list, axis=-1)
         dev_pred = self.model.predict(X_dev)
@@ -293,10 +294,7 @@ class RandomForestModel(SklearnModel):
             raise ValueError('Unknown task type: {}'.format(self.model_config.task_type))
 
         self.model.fit(X_train, y_train)
-
-        model_path = os.path.join(self.model_config.output_dir, 'model.json')
-        with open(model_path, 'wb') as f:
-            pickle.dump(self.model, f)
+        self.save(self.model_config.output_dir)
 
         X_dev_list = filter_none([X_dev_struc, X_dev_text])
         X_dev = np.concatenate(X_dev_list, axis=-1)
@@ -330,11 +328,8 @@ class SVMModel(SklearnModel):
         X_train_list = filter_none([X_train_struc, X_train_text])
         X_train = np.concatenate(X_train_list, axis=-1)
         self.model.fit(X_train, y_train)
-
-        model_path = os.path.join(self.model_config.output_dir, 'model.json')
-        with open(model_path, 'wb') as f:
-            pickle.dump(self.model, f)
-
+        self.save(self.model_config.output_dir)
+        
         X_dev_list = filter_none([X_dev_struc, X_dev_text])
         X_dev = np.concatenate(X_dev_list, axis=-1)
         dev_pred = self.model.predict(X_dev)
@@ -357,15 +352,10 @@ class LinearRegressionModel(SklearnModel):
         print('X_train: {}'.format(X_train.shape))
         self.model = linear_model.LinearRegression()
         self.model.fit(X_train, y_train)
-
-        model_path = os.path.join(self.model_config.output_dir, 'model.pkl')
-        with open(model_path, 'wb') as f:
-            pickle.dump(self.model, f)
+        self.save(self.model_config.output_dir)
 
         X_dev_list = filter_none([X_dev_struc, X_dev_text])
         X_dev = np.concatenate(X_dev_list, axis=-1)
         dev_pred = self.model.predict(X_dev)
         val_mse = mean_squared_error(y_dev, dev_pred)
         return {'val_metric': val_mse}
-    
-   

@@ -51,13 +51,28 @@ screen -S demo
 source ~/project/envs/lab/bin/activate
 cd ~/projects/Amplify-AutoML-Toolkit/demo
 
-mkdir encoded_data
-mkdir outputs
-
 chmod 777 run_nn_experiment.sh
+./run_nn_experiment.sh
 
 ```
 
+### Start BERT-Tiny experiment
+```
+screen -S bert
+source ~/project/envs/lab/bin/activate
+cd ~/projects/Amplify-AutoML-Toolkit/resource
+mkdir bert
+wget https://storage.googleapis.com/bert_models/2020_02_20/uncased_L-2_H-128_A-2.zip
+unzip uncased_L-2_H-128_A-2.zip
+rm uncased_L-2_H-128_A-2.zip
+
+cd ~/projects/Amplify-AutoML-Toolkit/demo
+chmod 777 run_bert_experiment.sh
+./run_bert_experiment.sh
+
+```
+
+More BERT models can be found [here](https://github.com/google-research/bert). 
 All the models and results about this experiment will be saved in `~/projects/Amplify-AutoML-Toolkit/demo/outputs`.
 
 

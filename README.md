@@ -24,13 +24,17 @@ ssh into the instance.
 ```
 mkdir ~/projects
 cd ~/projects/
-mkdir glove
+
+cd ~/projects/
+git clone https://github.com/chenchenpan/AutoML-Toolkit.git
+
+cd ~/projects/Amplify-AutoML-Toolkit/
+mkdir resource
+mkdir resource/glove
+cd ~/projects/Amplify-AutoML-Toolkit/resource/glove
 wget http://nlp.stanford.edu/data/glove.6B.zip
 unzip glove.6B.zip -d glove/
 rm glove.6B.zip
-
-cd ~/projects/
-git clone https://github.com/chenchenpan/Amplify-AutoML-Toolkit.git
 
 cd ~/projects/Amplify-AutoML-Toolkit/
 chmod 777 vm_setup.sh
@@ -45,7 +49,7 @@ Use the 'define_metadata_and_search_space.ipynb' to create the metadata file for
 ```
 screen -S demo
 source ~/project/envs/lab/bin/activate
-cd ~/projects/Amplify-AutoML-Toolkit/
+cd ~/projects/Amplify-AutoML-Toolkit/demo
 
 mkdir encoded_data
 mkdir outputs
@@ -65,7 +69,7 @@ All the models and results about this experiment will be saved in `~/projects/Am
 ```
 screen -S tb
 source ~/project/envs/lab/bin/activate
-cd  ~/projects/Amplify-AutoML-Toolkit/
+cd  ~/projects/Amplify-AutoML-Toolkit/demo
 tensorboard --logdir=outputs
 ```
 To see the tensorboard, in the browser, go to 

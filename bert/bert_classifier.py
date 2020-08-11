@@ -562,7 +562,7 @@ def run_bert_classifier(
   bert_config_file = os.path.join(bert_dir, 'bert_config.json')
   init_checkpoint = os.path.join(bert_dir, 'bert_model.ckpt')
 
-  tf.logging.set_verbosity(tf.logging.FATAL)
+  tf.logging.set_verbosity(tf.logging.INFO)
 
   tokenization.validate_case_matches_checkpoint(do_lower_case,
                                                 init_checkpoint)

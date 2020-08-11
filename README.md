@@ -73,7 +73,7 @@ chmod 777 run_bert_experiment.sh
 ```
 
 More BERT models can be found [here](https://github.com/google-research/bert). 
-All the models and results about the experiments will be saved in `~/projects/Amplify-AutoML-Toolkit/demo/outputs`.
+All the models and results about the experiments will be saved in `~/projects/AutoML-Toolkit/demo/outputs`.
 
 
 ### Start tensorboard to monitor experiment

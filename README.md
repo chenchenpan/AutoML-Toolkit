@@ -44,7 +44,7 @@ mkdir resource
 mkdir resource/glove
 cd ~/projects/AutoML-Toolkit/resource/glove
 wget http://nlp.stanford.edu/data/glove.6B.zip
-unzip glove.6B.zip -d glove/
+unzip glove.6B.zip
 rm glove.6B.zip
 
 screen -S demo

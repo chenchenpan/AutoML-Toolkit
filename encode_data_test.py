@@ -5,24 +5,140 @@ import pandas as pd
 import numpy as np
 import json
 
-def get_fake_dataset(with_text_col=False, text_only=False): 
+def get_fake_dataset(with_text_col=False, text_only=False, output_type='classes'):
+## you can change this to create your own test dataset here ##
+    if output_type == 'classes':
+        if with_text_col:
+            df_train = pd.DataFrame({'height': [1,2,3], 'key_words': ['hello', 'hi', 'yes'],
+                             'text': ["Strange Wit, an original graphic novel about Jane Bowles",
+                                      "The true biography of the historical figure, writer, alcoholic, lesbian",
+                                      "world traveler: Jane Sydney Auer Bowles."],
+                             'label': [0, 1, 2]})
+            df_dev = pd.DataFrame({'height': [4,7,5], 'key_words': ['hi', 'hi', 'yes'],
+                                   'text': ["FAM is the new mobile app which combines events and all your social media needs",
+                                            "Destiny, NY - FINAL HOURS!",
+                                            "A graphic novel about two magical ladies in love."],
+                                   'label': [1, 1, 2]})
+            df_test = pd.DataFrame({'height': [2,5,3], 'key_words': ['hello', 'yes', 'yes'],
+                            'text':["Publishing Magus Magazine,We are publishing a magazine that focuses on the folklore of the occult and paranormal.",
+                                    "It is tabloid format but with academic articles",
+                                    "a strong-willed Russian madam and The Cross at its most fabulous."],
+                            'label': [2, 1, 2]})
+            if text_only:
+                metadata = {'output_type': 'classes',
+                            'input_features': ['text'],
+                            'output_label': ['label'],
+                            'input_text': ['text'],
+                            'input_bool': [],
+                            'input_categorical': [],
+                            'input_datetime': [],
+                            'input_int': [],
+                            'input_float': []
+                            }
+
+            else:
+                metadata = {'output_type': 'classes',
+                            'input_features': ['height','key_words','text'],
+                            'output_label': ['label'],
+                            'input_text': ['text'],
+                            'input_bool': [],
+                            'input_categorical': ['key_words'],
+                            'input_datetime': [],
+                            'input_int': ['height'],
+                            'input_float': []
+                            }
+        else:
+            df_train = pd.DataFrame({'height': [1,2,3], 'key_words': ['hello', 'hi', 'yes'], 'label': [0, 1, 2]})
+            df_dev = pd.DataFrame({'height': [4,7,5], 'key_words': ['hi', 'hi', 'yes'], 'label': [1, 1, 2]})
+            df_test = pd.DataFrame({'height': [2,5,3], 'key_words': ['hello', 'yes', 'yes'], 'label': [2, 1, 2]})
+            metadata = {'output_type': 'classes',
+                        'input_features': ['height','key_words'],
+                        'output_label': ['label'],
+                        'input_text': [],
+                        'input_bool': [],
+                        'input_categorical': ['key_words'],
+                        'input_datetime': [],
+                        'input_int': ['height'],
+                        'input_float': []
+                        }
+    elif output_type == 'numbers':
+        if with_text_col:
+            df_train = pd.DataFrame({'height': [1, 2, 3], 'key_words': ['hello', 'hi', 'yes'],
+                                     'text': ["Strange Wit, an original graphic novel about Jane Bowles",
+                                              "The true biography of the historical figure, writer, alcoholic, lesbian",
+                                              "world traveler: Jane Sydney Auer Bowles."],
+                                     'label': [0, 1, 2]})
+            df_dev = pd.DataFrame({'height': [4, 7, 5], 'key_words': ['hi', 'hi', 'yes'],
+                                   'text': [
+                                       "FAM is the new mobile app which combines events and all your social media needs",
+                                       "Destiny, NY - FINAL HOURS!",
+                                       "A graphic novel about two magical ladies in love."],
+                                   'label': [3, 6, 4]})
+            df_test = pd.DataFrame({'height': [2, 5, 3], 'key_words': ['hello', 'yes', 'yes'],
+                                    'text': [
+                                        "Publishing Magus Magazine,We are publishing a magazine that focuses on the folklore of the occult and paranormal.",
+                                        "It is tabloid format but with academic articles",
+                                        "a strong-willed Russian madam and The Cross at its most fabulous."],
+                                    'label': [1, 4, 2]})
+            if text_only:
+                metadata = {'output_type': 'numbers',
+                            'input_features': ['text'],
+                            'output_label': ['label'],
+                            'input_text': ['text'],
+                            'input_bool': [],
+                            'input_categorical': [],
+                            'input_datetime': [],
+                            'input_int': [],
+                            'input_float': []
+                            }
+
+            else:
+                metadata = {'output_type': 'numbers',
+                            'input_features': ['height', 'key_words', 'text'],
+                            'output_label': ['label'],
+                            'input_text': ['text'],
+                            'input_bool': [],
+                            'input_categorical': ['key_words'],
+                            'input_datetime': [],
+                            'input_int': ['height'],
+                            'input_float': []
+                            }
+        else:
+            df_train = pd.DataFrame({'height': [1, 2, 3], 'key_words': ['hello', 'hi', 'yes'], 'label': [0, 1, 2]})
+            df_dev = pd.DataFrame({'height': [4, 7, 5], 'key_words': ['hi', 'hi', 'yes'], 'label': [3, 6, 4]})
+            df_test = pd.DataFrame({'height': [2, 5, 3], 'key_words': ['hello', 'yes', 'yes'], 'label': [1, 4, 2]})
+            metadata = {'output_type': 'numbers',
+                        'input_features': ['height', 'key_words'],
+                        'output_label': ['label'],
+                        'input_text': [],
+                        'input_bool': [],
+                        'input_categorical': ['key_words'],
+                        'input_datetime': [],
+                        'input_int': ['height'],
+                        'input_float': []
+                        }
+    else:
+        raise ValueError('Unknown task output_type: {}'.format(output_type))
+    return df_train, df_dev, df_test, metadata
+
+def get_fake_dataset_binary_class(with_text_col=False, text_only=False, output_type='classes'):
 ## you can change this to create your own test dataset here ##
     if with_text_col:
-        df_train = pd.DataFrame({'height': [1,2,3], 'key_words': ['hello', 'hi', 'yes'], 
-                         'text': ["Strange Wit, an original graphic novel about Jane Bowles",
-                                  "The true biography of the historical figure, writer, alcoholic, lesbian",
-                                  "world traveler: Jane Sydney Auer Bowles."], 
-                         'label': [0, 1, 2]})
+        df_train = pd.DataFrame({'height': [1,2,3], 'key_words': ['hello', 'hi', 'yes'],
+                                 'text': ["Strange Wit, an original graphic novel about Jane Bowles",
+                                          "The true biography of the historical figure, writer, alcoholic, lesbian",
+                                          "world traveler: Jane Sydney Auer Bowles."],
+                                 'label': [0, 1, 1]})
         df_dev = pd.DataFrame({'height': [4,7,5], 'key_words': ['hi', 'hi', 'yes'],
-                               'text': ["FAM is the new mobile app which combines events and all your social media needs", 
+                               'text': ["FAM is the new mobile app which combines events and all your social media needs",
                                         "Destiny, NY - FINAL HOURS!",
-                                        "A graphic novel about two magical ladies in love."], 
-                               'label': [1, 1, 2]})
+                                        "A graphic novel about two magical ladies in love."],
+                               'label': [1, 1, 0]})
         df_test = pd.DataFrame({'height': [2,5,3], 'key_words': ['hello', 'yes', 'yes'],
-                        'text':["Publishing Magus Magazine,We are publishing a magazine that focuses on the folklore of the occult and paranormal.",
-                                "It is tabloid format but with academic articles",
-                                "a strong-willed Russian madam and The Cross at its most fabulous."],
-                        'label': [2, 1, 2]})
+                                'text':["Publishing Magus Magazine,We are publishing a magazine that focuses on the folklore of the occult and paranormal.",
+                                        "It is tabloid format but with academic articles",
+                                        "a strong-willed Russian madam and The Cross at its most fabulous."],
+                                'label': [0, 1, 0]})
         if text_only:
             metadata = {'output_type': 'classes',
                         'input_features': ['text'],
@@ -33,7 +149,7 @@ def get_fake_dataset(with_text_col=False, text_only=False):
                         'input_datetime': [],
                         'input_int': [],
                         'input_float': []
-                        } 
+                        }
 
         else:
             metadata = {'output_type': 'classes',
@@ -45,27 +161,74 @@ def get_fake_dataset(with_text_col=False, text_only=False):
                         'input_datetime': [],
                         'input_int': ['height'],
                         'input_float': []
-                        } 
-    else:    
-        df_train = pd.DataFrame({'height': [1,2,3], 'key_words': ['hello', 'hi', 'yes'], 'label': [0, 1, 2]})
-        df_dev = pd.DataFrame({'height': [4,7,5], 'key_words': ['hi', 'hi', 'yes'], 'label': [1, 1, 2]})
-        df_test = pd.DataFrame({'height': [2,5,3], 'key_words': ['hello', 'yes', 'yes'], 'label': [2, 1, 2]})
+                        }
+    else:
+        # df_train = pd.DataFrame({'height': [1, 2, 1], 'key_words': ['hello', 'hi', 'hello'], 'label': [0, 1, 0]})
+        # df_dev = pd.DataFrame({'height': [4, 7, 5], 'key_words': ['hi', 'hi', 'yes'], 'label': [1, 1, 0]})
+        # df_test = pd.DataFrame({'height': [2, 5, 3], 'key_words': ['hello', 'yes', 'yes'], 'label': [0, 1, 0]})
+        df_train = pd.DataFrame({'height': [0, 1, 0], 'label': [1, 0, 1]})
+        df_dev = pd.DataFrame({'height': [4,7,5], 'label': [1, 1, 0]})
+        df_test = pd.DataFrame({'height': [2,5,3], 'label': [0, 1, 0]})
         metadata = {'output_type': 'classes',
-                    'input_features': ['height','key_words'],
+                    'input_features': ['height'],
                     'output_label': ['label'],
                     'input_text': [],
                     'input_bool': [],
-                    'input_categorical': ['key_words'],
+                    'input_categorical': [],
                     'input_datetime': [],
                     'input_int': ['height'],
                     'input_float': []
                     }
+
     return df_train, df_dev, df_test, metadata
 
 
 
     
 class TestEncoder(unittest.TestCase):
+    def test_strucdata_only_numerical_outputs(self):
+        df_train, df_dev, df_test, metadata = get_fake_dataset(with_text_col=False, output_type='numbers')
+        encoder = Encoder(metadata, text_config=None)
+
+        y_train, X_train, _ = encoder.fit_transform(df_train)
+        y_dev, X_dev, _ = encoder.transform(df_dev)
+        y_test, X_test, _ = encoder.transform(df_test)
+
+        print('*' * 20)
+        print(y_dev)
+        print('*' * 20)
+
+        X_train_true = np.array([
+            [-1.22474487,  1.        ,  0.        ,  0.        ],
+            [ 0.        ,  0.        ,  1.        ,  0.        ],
+            [ 1.22474487,  0.        ,  0.        ,  1.        ]])
+        y_train_true = np.array([
+            [0],
+            [1],
+            [2]])
+        self.assertTrue(np.isclose(X_train_true, X_train).all())
+        self.assertTrue(np.isclose(y_train_true, y_train).all())
+        X_dev_true = np.array([
+            [2.44948974, 0., 1., 0.],
+            [6.12372436, 0., 1., 0.],
+            [3.67423461, 0., 0., 1.]])
+        y_dev_true = np.array([
+            [3],
+            [6],
+            [4]])
+        self.assertTrue(np.isclose(X_dev_true, X_dev).all())
+        self.assertTrue(np.isclose(y_dev_true, y_dev).all())
+        X_test_true = np.array([
+            [0., 1., 0., 0.],
+            [3.67423461, 0., 0., 1.],
+            [1.22474487, 0., 0., 1.]])
+        y_test_true = np.array([
+            [1],
+            [4],
+            [2]])
+        self.assertTrue(np.isclose(X_test_true, X_test).all())
+        self.assertTrue(np.isclose(y_test_true, y_test).all())
+
     def test_strucdata_only(self):
         df_train, df_dev, df_test, metadata = get_fake_dataset(with_text_col=False)
         encoder = Encoder(metadata, text_config=None)
@@ -79,10 +242,9 @@ class TestEncoder(unittest.TestCase):
             [ 0.        ,  0.        ,  1.        ,  0.        ], 
             [ 1.22474487,  0.        ,  0.        ,  1.        ]])
         y_train_true = np.array([
-            [1., 0., 0.],
-           [0., 1., 0.],
-           [0., 0., 1.]])
-        # print(X_train)
+            [0],
+            [1],
+            [2]])
         self.assertTrue(np.isclose(X_train_true, X_train).all())
         self.assertTrue(np.isclose(y_train_true, y_train).all())
         X_dev_true = np.array([
@@ -90,9 +252,9 @@ class TestEncoder(unittest.TestCase):
             [6.12372436, 0.        , 1.        , 0.        ],
             [3.67423461, 0.        , 0.        , 1.        ]])
         y_dev_true = np.array([
-            [0., 1., 0.],
-           [0., 1., 0.],
-           [0., 0., 1.]])
+            [1],
+            [1],
+            [2]])
         self.assertTrue(np.isclose(X_dev_true, X_dev).all())
         self.assertTrue(np.isclose(y_dev_true, y_dev).all())
         X_test_true = np.array([
@@ -100,9 +262,9 @@ class TestEncoder(unittest.TestCase):
             [3.67423461, 0.        , 0.        , 1.        ],
             [1.22474487, 0.        , 0.        , 1.        ]])
         y_test_true = np.array([
-            [0., 0., 1.],
-           [0., 1., 0.],
-           [0., 0., 1.]])
+            [2],
+            [1],
+            [2]])
         self.assertTrue(np.isclose(X_test_true, X_test).all())
         self.assertTrue(np.isclose(y_test_true, y_test).all())
 

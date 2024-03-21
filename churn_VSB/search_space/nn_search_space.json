@@ -1,0 +1,86 @@
+{
+    "hidden_size_dense": [
+        "log_int",
+        [
+            16,
+            32
+        ]
+    ],
+    "hidden_size_lstm": [
+        "log_int",
+        [
+            16,
+            32
+        ]
+    ],
+    "hidden_size_output": [
+        "log_int",
+        [
+            16,
+            32
+        ]
+    ],
+    "learning_rate": [
+        "log_cont",
+        [
+            0.0001,
+            0.1
+        ]
+    ],
+    "dropout_rate": [
+        "linear_cont",
+        [
+            0.0,
+            0.5
+        ]
+    ],
+    "n_layers_dense": [
+        "linear_int",
+        [
+            1,
+            3
+        ]
+    ],
+    "n_layers_lstm": [
+        "linear_int",
+        [
+            1,
+            3
+        ]
+    ],
+    "n_layers_output": [
+        "linear_int",
+        [
+            1,
+            2
+        ]
+    ],
+    "n_epochs": [
+        "linear_int",
+        [
+            1,
+            11
+        ]
+    ],
+    "patience": [
+        "category",
+        [
+            2,
+            5
+        ]
+    ],
+    "batch_size": [
+        "category",
+        [
+            2,
+            8
+        ]
+    ],
+    "optimizer": [
+        "category",
+        [
+            "adam",
+            "rmsprop"
+        ]
+    ]
+}

@@ -199,8 +199,8 @@ class BasicTokenizer(object):
     text = self._clean_text(text)
 
     # This was added on November 1st, 2018 for the multilingual and Chinese
-    # models. This is also applied to the English models now, but it doesn't
-    # matter since the English models were not trained on any Chinese data
+    # nn_outputs. This is also applied to the English nn_outputs now, but it doesn't
+    # matter since the English nn_outputs were not trained on any Chinese data
     # and generally don't have any Chinese data in them (there are Chinese
     # characters in the vocabulary because Wikipedia does have some Chinese
     # words in the English Wikipedia.).

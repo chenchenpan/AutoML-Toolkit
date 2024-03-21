@@ -38,7 +38,7 @@ def main():
         help=('which test file will be used?'))
 
     parser.add_argument('--output_dir', type=str,
-        # default='/data/home/t-chepan/projects/MS-intern-project/raw_data',
+        # default='/data/home/t-chepan/projects/MS-intern-project/data',
         help=('directory to save the encoded data.'))
 
 

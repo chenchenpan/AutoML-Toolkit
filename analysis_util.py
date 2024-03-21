@@ -3,8 +3,37 @@ import json
 import pandas as pd
 import pickle as pkl
 import numpy as np
-from encode_data import Encoder, Mapping
+import shutil
+import sklearn
 from modeling import get_model_cls
+
+
+def calculate_eval_metric(task_type, y, pred):
+    if task_type == 'regression':
+        mse = sklearn.metrics.mean_squared_error(y, pred)
+        print('mean square error is {}'.format(mse))
+        eval_metric = mse
+    elif task_type == 'classification':
+        acc = sklearn.metrics.accuracy_score(y, pred)
+        # precision = sklearn.metrics.precision_score(y, pred)
+        # recall = sklearn.metrics.recall_score(y, pred)
+        # print('accuracy is {}, precision is {}, and recall is {}'.format(acc, precision, recall))
+        print('accuracy is {}'.format(acc))
+        eval_metric = acc
+    else:
+        raise ValueError('task type is not recognized!')
+    return eval_metric
+
+
+def count_df_rows_with_chunks(filename, sep=',', chunksize=1000):
+    chunk_reader = pd.read_csv(filename, sep=sep, header=0, error_bad_lines=True, iterator=True,
+                               chunksize=chunksize)
+    num_rows = 0
+    for chunk_number, chunk in enumerate(chunk_reader):
+        chunk_df = pd.DataFrame(chunk)
+        num_rows += chunk_df.shape[0]
+    print("Total number of rows is {}".format(num_rows))
+    return num_rows
 
 
 def read_file(path):
@@ -65,3 +94,21 @@ def get_best_trial(output_dir):
             best_trial = trial_dir
     print('best metric: {}, best_trial: {}'.format(best_metric, best_trial))
     return best_trial
+
+def copy_directory(old_dir, new_dir):
+    if not os.path.exists(new_dir):
+        os.makedirs(new_dir)
+    # return file list under the old directory
+    file_list = os.listdir(old_dir)
+    for file in file_list:
+        # Add the file name to the current file path
+        old_file_path = old_dir + '/' + file
+        new_file_path = new_dir + '/' + file
+        # If it is a file
+        if os.path.isfile(old_file_path):
+            print(old_file_path)
+            print(new_dir)
+            # copyfile The two functions must be files, not directories,
+            shutil.copyfile(old_file_path, new_file_path)
+        else: # If it is not a file, recurse the path of this folder
+            copy_directory(old_file_path, new_file_path)

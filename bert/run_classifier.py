@@ -59,7 +59,7 @@ flags.DEFINE_string(
 flags.DEFINE_bool(
     "do_lower_case", True,
     "Whether to lower case the input text. Should be True for uncased "
-    "models and False for cased models.")
+    "nn_outputs and False for cased nn_outputs.")
 
 flags.DEFINE_integer(
     "max_seq_length", 128,

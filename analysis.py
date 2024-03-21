@@ -10,8 +10,8 @@ import pickle as pkl
 import numpy as np
 import pandas as pd
 import sklearn.metrics
-
-from analysis_util import Encoder, Mapping, read_file, load_all, get_best_trial
+from encode_data import Encoder, Mapping
+from analysis_util import read_file, load_all, get_best_trial
 
 def shuffle_col(df, col, seed=None):
     new_df = df.copy()
@@ -39,11 +39,11 @@ def evaluate(df, encoder, model):
 # In[62]:
 
 output_dir = '/datadrive/projects/AutoML/NPS/outputs/nn_outputs/'
-data_file = '/datadrive/projects/AutoML/NPS/data/raw_data/NPS_dev_clean.tsv'
+data_file = '/datadrive/projects/AutoML/NPS/data/data/NPS_dev_clean.tsv'
 label_col = 'NPS'
 
 # output_dir = '/datadrive/projects/AutoML/demo/outputs/nn_outputs/'
-# data_file = '/datadrive/projects/AutoML/demo/data/raw_data/comb_dev.tsv'
+# data_file = '/datadrive/projects/AutoML/demo/data/data/comb_dev.tsv'
 # label_col = 'label'
 
 df = read_file(data_file)

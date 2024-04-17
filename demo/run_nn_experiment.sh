@@ -20,11 +20,12 @@ python $DIR/encode_data.py \
 
 
 export OUTPUT_DIR=$DIR/demo/outputs/nn_outputs
-export SEARCH_SPACE=$DIR/demo/search_space/nn_search_space.json
+export SEARCH_SPACE=$DIR/demo/search_space
 
 python $DIR/experiments.py \
        --encoded_data_dir $ENCODED_DATA_DIR \
-       --search_space_filepath $SEARCH_SPACE \
+       --search_space_dir $SEARCH_SPACE \
+       --search_space_filename nn_search_space.json \
        --output_dir $OUTPUT_DIR \
        --task_type classification \
        --num_classes 2 \

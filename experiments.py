@@ -111,6 +111,7 @@ def main():
     parser.add_argument('--task_type', type=str,
                         default='classification',
                         help=('what is the type of this task? (classification or regression?)'))
+    
     parser.add_argument('--metric', type=str,
                         default='acc',
                         help=('what metric will be used in this task? (acc, auc, or mse?)'))

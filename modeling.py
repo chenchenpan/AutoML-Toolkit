@@ -91,6 +91,7 @@ def output_block(tensor, model_config):
     if model_config.model_type == 'skip_connections': # need to check x and tensor have same dimension
         x = x + tensor
 
+    ## classification task
     if model_config.task_type == 'classification':
         # binary classification task
         if (model_config.num_classes <= 2) and (model_config.num_outputs < 2):
@@ -230,11 +231,15 @@ class NeuralNetworkModel(Model):
         if self.model_config.task_type == 'classification' and self.model_config.num_classes <= 2:
             self.model.compile(loss='binary_crossentropy',
                                optimizer=opt,
-                               metrics=[metrics.AUC(name="auc")])
+                            #    metrics=[metrics.AUC(name="auc")]
+                               metrics=[m]
+                               )
         elif self.model_config.task_type == 'classification' and self.model_config.num_classes > 2:
             self.model.compile(loss='sparse_categorical_crossentropy',
                                optimizer=opt,
-                               metrics=[metrics.AUC(name="auc")])
+                            #    metrics=[metrics.AUC(name="auc")]
+                               metrics=[m]
+                               )
         elif self.model_config.task_type == 'regression':
             self.model.compile(loss='mse',
                                optimizer=opt,
@@ -272,7 +277,7 @@ class NeuralNetworkModel(Model):
         self.model.save(model_path)
 
         print('*' * 20)
-        print(self.hist.history)
+        print('self.hist.history is: {}'.format(self.hist.history))
         # print(self.model_config)
         # print(output)
         print('*' * 20)

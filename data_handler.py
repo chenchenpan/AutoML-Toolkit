@@ -216,15 +216,25 @@ class DataHandler:
         Args:
             df: Input DataFrame
             output_dir: Directory to save metadata.json
-            output_type: Type of output - must be either 'classes' or 'numbers'
+            output_type: Type of output - must be either 'classes', 'numbers', or a list of types for multi-task
             output_label: List of column names to be used as output labels
             
         Returns:
             Dictionary containing metadata
         """
         # Validate output_type
-        if output_type not in ['classes', 'numbers']:
-            raise ValueError("output_type must be either 'classes' or 'numbers'")
+        if isinstance(output_type, str):
+            if output_type not in ['classes', 'numbers']:
+                raise ValueError("output_type must be either 'classes' or 'numbers'")
+            output_types = [output_type] * len(output_label)
+        elif isinstance(output_type, list):
+            if not all(t in ['classes', 'numbers'] for t in output_type):
+                raise ValueError("Each output_type must be either 'classes' or 'numbers'")
+            if len(output_type) != len(output_label):
+                raise ValueError("Length of output_type list must match length of output_label list")
+            output_types = output_type
+        else:
+            raise ValueError("output_type must be either a string or a list")
         
         # Validate output_label
         if not isinstance(output_label, list) or not output_label:
@@ -314,6 +324,7 @@ class DataHandler:
         
         metadata = {
             'output_type': output_type,
+            'output_types': output_types,
             'input_features': [col for col in df.columns if col not in output_label],
             'output_label': output_label,
             'input_text': text_cols,

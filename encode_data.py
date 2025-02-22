@@ -265,6 +265,7 @@ def separate_input_output_cols(df, metadata):
       df_X_bool: a DataFrame that stores the boolean inputs
 
     """
+    print('metadata is: {}'.format(metadata))
     # input_cols = metadata['input_features']
     output_cols = metadata['output_label']
     input_text_cols = metadata['input_text']
@@ -336,8 +337,35 @@ def encode_num(df_X_num):
     return X_num
 
 
-def encode_y(metadata, df_y, y_encoder):
-    if metadata['output_type'] == 'classes':
+def encode_y(metadata, df_y, y_encoder=None):
+    """Encode output labels"""
+    if metadata['output_type'] == 'multi_task':
+        y_dict = {}
+        if y_encoder is None:
+            y_encoder = {}
+            
+        for col in metadata['output_label']:
+            if metadata['task_types'][col] == 'classification':
+                if col not in y_encoder:
+                    y_encoder[col] = LabelEncoder()
+                    y = y_encoder[col].fit_transform(df_y[col])
+                else:
+                    y = y_encoder[col].transform(df_y[col])
+                
+                # Convert to one-hot for multi-class (>2 classes)
+                num_classes = len(y_encoder[col].classes_)
+                if num_classes > 2:
+                    y = np_utils.to_categorical(y, num_classes=num_classes)
+                else:
+                    y = y.reshape(-1, 1)  # Keep binary as 2D array
+                    
+                y_dict[f'{col}_output'] = y
+            else:  # regression
+                y_dict[f'{col}_output'] = df_y[col].values.reshape(-1, 1)
+                
+        return y_dict, y_encoder
+        
+    elif metadata['output_type'] == 'classes':
         # encode class values as integers
         y_arr = df_y.values
         # print('*' * 20)
@@ -496,8 +524,7 @@ def encode_textdata(df_X_text, tokenizer, mode, max_words, maxlen):
     return X_text, tokenizer  ### need to save embedding_matrix as well
 
 
-def encode_dataset(df, metadata, y_encoder=None, vectorizer=None, scaler=None, tokenizer=None, mode=None,
-                   max_words=None, maxlen=None):
+def encode_dataset(df, metadata, y_encoder=None, vectorizer=None, scaler=None, tokenizer=None, mode=None, max_words=None, maxlen=None):
     print('Starting to encode dataset...')
 
     df_y, df_X_text, df_X_float, df_X_int, df_X_cat, df_X_datetime, df_X_bool = separate_input_output_cols(df, metadata)
@@ -564,20 +591,115 @@ class Encoder(object):
                                                             vectorizer=self.vectorizer, scaler=self.scaler)
 
         elif self.text_config.mode == 'tfidf':
-
             y, _, X_struc, X_text, _, _, _ = encode_dataset(
-                df, self.metadata, y_encoder=self.y_encoder,
-                vectorizer=self.vectorizer, scaler=self.scaler, tokenizer=self.tokenizer, mode='tfidf',
-                max_words=self.text_config.max_words)
+                df, 
+                self.metadata, 
+                y_encoder=self.y_encoder,
+                vectorizer=self.vectorizer, 
+                scaler=self.scaler, 
+                tokenizer=self.tokenizer, mode='tfidf',
+                max_words=self.text_config.max_words
+            )
         elif self.text_config.mode == 'glove':
             y, _, X_struc, X_text, _, _, _ = encode_dataset(
-                df, self.metadata, y_encoder=self.y_encoder,
-                vectorizer=self.vectorizer, scaler=self.scaler, tokenizer=self.tokenizer,
-                mode='glove', max_words=self.text_config.max_words, maxlen=self.text_config.maxlen)
+                df, 
+                self.metadata, 
+                y_encoder=self.y_encoder,
+                vectorizer=self.vectorizer, 
+                scaler=self.scaler, 
+                tokenizer=self.tokenizer,
+                mode='glove', 
+                max_words=self.text_config.max_words, 
+                maxlen=self.text_config.maxlen
+            )
         else:
             raise ValueError('Unknown type of text_config: {}'.format(self.text_config.mode))
 
         return y, X_struc, X_text
+
+    def fit_transform_multi_task(self, df):
+        """Transform data for multiple tasks
+        
+        Args:
+            df: DataFrame containing features and multiple target columns
+            
+        Returns:
+            y_dict: Dictionary mapping task names to labels
+            X_struc: Structured features array
+            X_text: Text features array
+        """
+        # Configure text parameters based on mode
+        text_mode = self.text_config.mode if self.text_config else None
+        text_maxlen = None
+        text_max_words = None
+        
+        if self.text_config:
+            text_max_words = self.text_config.max_words
+            if self.text_config.mode == 'glove':
+                text_maxlen = self.text_config.maxlen
+        
+        # Use existing encode_dataset for feature transformation
+        _, _, X_struc, X_text, self.vectorizer, self.scaler, self.tokenizer = encode_dataset(
+            df, 
+            self.metadata,
+            vectorizer=None,  # First time fitting
+            scaler=None,      # First time fitting
+            tokenizer=None,   # First time fitting
+            mode=text_mode,
+            max_words=text_max_words,
+            maxlen=text_maxlen
+        )
+        
+        # Transform multiple targets
+        y_dict = {}
+        for output_label in self.metadata['output_label']:
+            y = df[output_label].values
+            # Add _output suffix to match model output names
+            y_dict[f'{output_label}_output'] = y
+            
+        return y_dict, X_struc, X_text
+
+    def transform_multi_task(self, df):
+        """Transform data for multiple tasks without fitting
+        
+        Args:
+            df: DataFrame containing features and multiple target columns
+            
+        Returns:
+            y_dict: Dictionary mapping task names to labels
+            X_struc: Structured features array
+            X_text: Text features array
+        """
+        # Configure text parameters based on mode
+        text_mode = self.text_config.mode if self.text_config else None
+        text_maxlen = None
+        text_max_words = None
+        
+        if self.text_config:
+            text_max_words = self.text_config.max_words
+            if self.text_config.mode == 'glove':
+                text_maxlen = self.text_config.maxlen
+        
+        # Use existing encode_dataset for feature transformation
+        _, _, X_struc, X_text, _, _, _ = encode_dataset(
+            df, 
+            self.metadata,
+            vectorizer=self.vectorizer,    # Use fitted vectorizer
+            scaler=self.scaler,            # Use fitted scaler
+            tokenizer=self.tokenizer,      # Use fitted tokenizer
+            mode=text_mode,
+            max_words=text_max_words,
+            maxlen=text_maxlen
+        )
+        
+        # Transform multiple targets
+        y_dict = {}
+        for output_label in self.metadata['output_label']:
+            y = df[output_label].values
+            # Add _output suffix to match model output names
+            y_dict[f'{output_label}_output'] = y
+            
+        return y_dict, X_struc, X_text
 
 
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
 import os
 import unittest
 import numpy as np
+import pandas as pd
 from encode_data import Encoder, Mapping, open_glove
 from encode_data_test import get_fake_dataset, get_fake_dataset_binary_class
 from modeling import LogisticRegressionModel, SVMModel, RandomForestModel, NeuralNetworkModel, LinearRegressionModel
@@ -461,6 +462,162 @@ class TestModel(unittest.TestCase):
 
     def test_skip_connections(self):
         pass
+
+    def test_multi_task_learning(self):
+        """Test multi-task learning with classification and regression tasks"""
+        # Generate fake dataset with multiple targets
+        df_train, df_dev, df_test, metadata = get_fake_dataset_multi_task(
+            with_text_col=True,
+            classification_targets=['sentiment'],  # Binary classification task
+            regression_targets=['rating']          # Regression task
+        )
+        
+        # Configure text processing
+        text_config = Mapping()
+        text_config.mode = 'tfidf'
+        text_config.max_words = 20
+        
+        # Create encoder and transform data
+        encoder = Encoder(metadata, text_config=text_config)
+        y_train_dict, X_train_struc, X_train_text = encoder.fit_transform_multi_task(df_train)
+        y_dev_dict, X_dev_struc, X_dev_text = encoder.transform_multi_task(df_dev)
+        
+        # Configure model for multi-task learning
+        model_config = get_fake_modelconfig('tmp/outputs_test')
+        model_config.update({
+            'task_types': ['classification', 'regression'],
+            'task_names': ['sentiment', 'rating'],
+            'num_classes_list': [2, None],  # Binary classification and regression
+            'metric': 'auc',                # Primary metric for classification
+            'task_specific_layers': 2,      # Add task-specific layers
+            'hidden_size_output': 64
+        })
+        
+        # Set output directory
+        model_config.output_dir = os.path.join(model_config.output_dir, 'multi_task')
+        if not os.path.exists(model_config.output_dir):
+            os.makedirs(model_config.output_dir)
+        
+        # Create and train model
+        model = NeuralNetworkModel(text_config, model_config)
+        val_metrics = model.train_multi_task(
+            y_train_dict, X_train_struc, X_train_text,
+            y_dev_dict, X_dev_struc, X_dev_text
+        )
+        
+        # Check if expected metrics are returned
+        self.assertIn('sentiment_error_rate', val_metrics)
+        self.assertIn('rating_mse', val_metrics)
+        
+        # Check if metrics are within expected range
+        self.assertGreaterEqual(val_metrics['sentiment_error_rate'], 0.0)
+        self.assertLessEqual(val_metrics['sentiment_error_rate'], 1.0)
+        self.assertGreaterEqual(val_metrics['rating_mse'], 0.0)
+
+    def test_multi_task_learning_classification_only(self):
+        """Test multi-task learning with multiple classification tasks"""
+        # Generate fake dataset with multiple classification targets
+        df_train, df_dev, df_test, metadata = get_fake_dataset_multi_task(
+            with_text_col=True,
+            classification_targets=['sentiment', 'topic'],  # Binary and multi-class
+            regression_targets=[]
+        )
+        
+        # Configure text processing
+        text_config = Mapping()
+        text_config.mode = 'tfidf'
+        text_config.max_words = 20
+        
+        # Create encoder and transform data
+        encoder = Encoder(metadata, text_config=text_config)
+        y_train_dict, X_train_struc, X_train_text = encoder.fit_transform_multi_task(df_train)
+        y_dev_dict, X_dev_struc, X_dev_text = encoder.transform_multi_task(df_dev)
+        
+        # Configure model for multi-task classification
+        model_config = get_fake_modelconfig('tmp/outputs_test')
+        model_config.task_types = ['classification', 'classification']
+        model_config.task_names = ['sentiment', 'topic']
+        model_config.num_classes_list = [2, 3]  # Binary and 3-class classification
+        model_config.metric = 'acc'
+        model_config.task_specific_layers = 1
+        model_config.output_dir = os.path.join(model_config.output_dir, 'multi_task_classification')
+        
+        if not os.path.exists(model_config.output_dir):
+            os.makedirs(model_config.output_dir)
+        
+        # Create and train model
+        model = NeuralNetworkModel(text_config, model_config)
+        val_metrics = model.train_multi_task(
+            y_train_dict, X_train_struc, X_train_text,
+            y_dev_dict, X_dev_struc, X_dev_text
+        )
+        
+        # Check metrics
+        self.assertIn('sentiment_error_rate', val_metrics)
+        self.assertIn('topic_error_rate', val_metrics)
+        
+        # Verify metric ranges
+        for task in ['sentiment', 'topic']:
+            self.assertGreaterEqual(val_metrics[f'{task}_error_rate'], 0.0)
+            self.assertLessEqual(val_metrics[f'{task}_error_rate'], 1.0)
+
+
+def get_fake_dataset_multi_task(with_text_col=True, classification_targets=None, regression_targets=None):
+    """Generate fake dataset for multi-task learning"""
+    n_samples = 100
+    data = {
+        'id': [f'{i:02d}' for i in range(n_samples)],
+        'float_col': np.random.randn(n_samples),
+        'int_col': np.random.randint(0, 5, n_samples),
+        'categorical_col': np.random.choice(['A', 'B', 'C'], n_samples)
+    }
+    
+    if with_text_col:
+        data['text_col'] = [
+            'Sample text ' + str(i) for i in range(n_samples)
+        ]
+    
+    # Add classification targets
+    if classification_targets:
+        for target in classification_targets:
+            if target == 'sentiment':  # Binary
+                data[target] = np.random.randint(0, 2, n_samples)
+            else:  # Multi-class
+                data[target] = np.random.randint(0, 3, n_samples)
+    
+    # Add regression targets
+    if regression_targets:
+        for target in regression_targets:
+            data[target] = np.random.randn(n_samples)
+    
+    # Create DataFrame and split
+    df = pd.DataFrame(data)
+    train_size = int(0.6 * len(df))
+    dev_size = int(0.2 * len(df))
+    
+    df_train = df[:train_size]
+    df_dev = df[train_size:train_size + dev_size]
+    df_test = df[train_size + dev_size:]
+    
+    # Create metadata
+    metadata = {
+        'input_features': ['float_col', 'int_col', 'categorical_col'],
+        'output_label': classification_targets + (regression_targets if regression_targets else []),
+        'input_float': ['float_col'],
+        'input_int': ['int_col'],
+        'input_categorical': ['categorical_col'],
+        'input_datetime': [],
+        'input_bool': [],
+        'input_text': ['text_col'] if with_text_col else [],
+        'output_type': 'multi_task',
+        'task_types': {
+            target: 'classification' for target in (classification_targets or [])
+        } | {
+            target: 'regression' for target in (regression_targets or [])
+        }
+    }
+    
+    return df_train, df_dev, df_test, metadata
 
 
 

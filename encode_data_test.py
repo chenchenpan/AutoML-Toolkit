@@ -182,9 +182,63 @@ def get_fake_dataset_binary_class(with_text_col=False, text_only=False, output_t
 
     return df_train, df_dev, df_test, metadata
 
-
-
+def get_fake_dataset_multi_task(with_text_col=True, classification_targets=None, regression_targets=None):
+    """Generate fake dataset for multi-task learning"""
+    n_samples = 100
+    data = {
+        'id': [f'{i:02d}' for i in range(n_samples)],
+        'float_col': np.random.randn(n_samples),
+        'int_col': np.random.randint(0, 5, n_samples),
+        'categorical_col': np.random.choice(['A', 'B', 'C'], n_samples)
+    }
     
+    if with_text_col:
+        data['text_col'] = [
+            'Sample text ' + str(i) for i in range(n_samples)
+        ]
+    
+    # Add classification targets
+    if classification_targets:
+        for target in classification_targets:
+            if target == 'sentiment':  # Binary
+                data[target] = np.random.randint(0, 2, n_samples)
+            else:  # Multi-class
+                data[target] = np.random.randint(0, 3, n_samples)
+    
+    # Add regression targets
+    if regression_targets:
+        for target in regression_targets:
+            data[target] = np.random.randn(n_samples)
+    
+    # Create DataFrame and split
+    df = pd.DataFrame(data)
+    train_size = int(0.6 * len(df))
+    dev_size = int(0.2 * len(df))
+    
+    df_train = df[:train_size]
+    df_dev = df[train_size:train_size + dev_size]
+    df_test = df[train_size + dev_size:]
+    
+    # Create metadata with proper output structure
+    metadata = {
+        'input_features': ['float_col', 'int_col', 'categorical_col'],
+        'output_label': classification_targets + (regression_targets if regression_targets else []),
+        'input_float': ['float_col'],
+        'input_int': ['int_col'],
+        'input_categorical': ['categorical_col'],
+        'input_datetime': [],
+        'input_bool': [],
+        'input_text': ['text_col'] if with_text_col else [],
+        'output_type': 'multi_task',
+        'task_types': {
+            target: 'classification' for target in (classification_targets or [])
+        } | {
+            target: 'regression' for target in (regression_targets or [])
+        }
+    }
+    
+    return df_train, df_dev, df_test, metadata
+
 class TestEncoder(unittest.TestCase):
     def test_strucdata_only_numerical_outputs(self):
         df_train, df_dev, df_test, metadata = get_fake_dataset(with_text_col=False, output_type='numbers')
@@ -391,6 +445,97 @@ class TestEncoder(unittest.TestCase):
         self.assertTrue(np.isclose(X_test_text_true, X_test_text).all())
         self.assertTrue(np.isclose(X_test_struc_true, X_test_struc).all())
 
+    def test_encoder_multi_task(self):
+        """Test encoder with multiple tasks (classification and regression)"""
+        # Generate fake dataset with multiple targets
+        df_train, df_dev, df_test, metadata = get_fake_dataset_multi_task(
+            with_text_col=True,
+            classification_targets=['sentiment'],  # Binary classification
+            regression_targets=['rating']          # Regression
+        )
+        
+        # Add required metadata fields for multi-task
+        metadata.update({
+            'output_type': 'multi_task',
+            'task_types': {
+                'sentiment': 'classification',
+                'rating': 'regression'
+            }
+        })
+        
+        # Configure text processing
+        text_config = Mapping()
+        text_config.mode = 'tfidf'
+        text_config.max_words = 20
+        
+        # Create encoder and test
+        encoder = Encoder(metadata, text_config=text_config)
+        y_train_dict, X_train_struc, X_train_text = encoder.fit_transform_multi_task(df_train)
+        
+        # Check outputs structure
+        self.assertIn('sentiment_output', y_train_dict)
+        self.assertIn('rating_output', y_train_dict)
+        self.assertIsNotNone(X_train_struc)
+        self.assertIsNotNone(X_train_text)
+        
+        # Check shapes
+        self.assertEqual(y_train_dict['sentiment_output'].shape[0], len(df_train))
+        self.assertEqual(y_train_dict['rating_output'].shape[0], len(df_train))
+        self.assertEqual(X_train_struc.shape[0], len(df_train))
+        self.assertEqual(X_train_text.shape[0], len(df_train))
+        
+        # Test transform_multi_task
+        y_dev_dict, X_dev_struc, X_dev_text = encoder.transform_multi_task(df_dev)
+        
+        # Check dev outputs
+        self.assertIn('sentiment_output', y_dev_dict)
+        self.assertIn('rating_output', y_dev_dict)
+        self.assertEqual(y_dev_dict['sentiment_output'].shape[0], len(df_dev))
+        self.assertEqual(y_dev_dict['rating_output'].shape[0], len(df_dev))
+        self.assertEqual(X_dev_struc.shape[0], len(df_dev))
+        self.assertEqual(X_dev_text.shape[0], len(df_dev))
+        
+        # Check feature dimensions consistency
+        self.assertEqual(X_train_struc.shape[1], X_dev_struc.shape[1])
+        self.assertEqual(X_train_text.shape[1], X_dev_text.shape[1])
+
+    def test_encoder_multi_task_classification_only(self):
+        """Test encoder with multiple classification tasks"""
+        # Generate fake dataset with multiple classification targets
+        df_train, df_dev, df_test, metadata = get_fake_dataset_multi_task(
+            with_text_col=True,
+            classification_targets=['sentiment', 'topic'],  # Binary and multi-class
+            regression_targets=[]
+        )
+        
+        # Configure text processing
+        text_config = Mapping()
+        text_config.mode = 'tfidf'
+        text_config.max_words = 20
+        
+        # Create encoder
+        encoder = Encoder(metadata, text_config=text_config)
+        
+        # Test fit_transform_multi_task
+        y_train_dict, X_train_struc, X_train_text = encoder.fit_transform_multi_task(df_train)
+        
+        # Check outputs structure
+        self.assertIn('sentiment_output', y_train_dict)
+        self.assertIn('topic_output', y_train_dict)
+        
+        # Check binary vs multi-class shapes
+        sentiment_values = np.unique(y_train_dict['sentiment_output'])
+        topic_values = np.unique(y_train_dict['topic_output'])
+        self.assertEqual(len(sentiment_values), 2)  # Binary
+        self.assertEqual(len(topic_values), 3)      # Multi-class
+        
+        # Test transform_multi_task
+        y_dev_dict, X_dev_struc, X_dev_text = encoder.transform_multi_task(df_dev)
+        
+        # Check consistency
+        self.assertEqual(set(y_train_dict.keys()), set(y_dev_dict.keys()))
+        self.assertEqual(X_train_struc.shape[1], X_dev_struc.shape[1])
+        self.assertEqual(X_train_text.shape[1], X_dev_text.shape[1])
 
 if __name__ == '__main__':
     if not os.path.exists('tmp'):

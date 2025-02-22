@@ -156,6 +156,35 @@ class Model(object):
         pass
 
 
+def output_block_multi_task(shared_tensor, model_config):
+    """Create multiple output layers for multi-task learning"""
+    outputs = []
+    for task_type, task_name, num_classes in zip(
+        model_config.task_types, 
+        model_config.task_names,
+        model_config.num_classes_list
+    ):
+        # Task-specific layers
+        task_tensor = shared_tensor
+        for _ in range(model_config.task_specific_layers):
+            task_tensor = Dense(model_config.hidden_size_output, activation='relu')(task_tensor)
+        
+        # Output layer
+        if task_type == 'classification':
+            if num_classes <= 2:
+                # Binary classification
+                output = Dense(1, activation='sigmoid', name=f'{task_name}_output')(task_tensor)
+            else:
+                # Multi-class classification
+                output = Dense(num_classes, activation='softmax', name=f'{task_name}_output')(task_tensor)
+        else:  # regression
+            output = Dense(1, activation='linear', name=f'{task_name}_output')(task_tensor)
+        
+        outputs.append(output)
+    
+    return outputs
+
+
 class NeuralNetworkModel(Model):
 
     def load(self, output_dir):
@@ -293,18 +322,16 @@ class NeuralNetworkModel(Model):
         # print('y_train is: {}'.format(y_train))
         # print('F' * 20)
 
-        if self.model_config.task_type == 'classification' and self.model_config.metric == 'acc':
-            val_metric = float(1 - self.hist.history['val_acc'][-1])
-            return {'val_metric': val_metric}
-
-        elif self.model_config.task_type == 'classification' and self.model_config.metric == 'auc':
-            val_metric = float(1 - self.hist.history['val_auc'][-1])
-            return {'val_metric': val_metric}
-
+        if self.model_config.task_type == 'classification':
+            if self.model_config.metric == 'acc':
+                val_metric = float(1 - self.hist.history['val_acc'][-1])
+                return {'val_metric': val_metric}
+            elif self.model_config.metric == 'auc':
+                val_metric = float(1 - self.hist.history['val_auc'][-1])
+                return {'val_metric': val_metric}
         elif self.model_config.task_type == 'regression':
             val_mse = float(self.hist.history['val_mse'][-1])
             return {'val_metric': val_mse}
-
         else:
             raise ValueError('Unknown task type: {}'.format(self.model_config.task_type))
 
@@ -352,6 +379,165 @@ class NeuralNetworkModel(Model):
             np.save(preds_save_path, output)
 
         return output
+
+    def train_multi_task(self, y_train_dict, X_train_struc, X_train_text, 
+                        y_dev_dict, X_dev_struc, X_dev_text):
+        """
+        Train a multi-task neural network
+        
+        Args:
+            y_train_dict: Dictionary mapping task names to training labels
+            X_train_struc: Structured input features for training
+            X_train_text: Text input features for training  
+            y_dev_dict: Dictionary mapping task names to validation labels
+            X_dev_struc: Structured input features for validation
+            X_dev_text: Text input features for validation
+        """
+        # Build input layers
+        input_tensors = []
+        if X_train_struc is not None:
+            n_features = X_train_struc.shape[1]
+            input_tensor_struc = Input(shape=(n_features,),
+                                     dtype='float32', 
+                                     name='structual_data')
+            tensor_struc = dense_block(input_tensor_struc, self.model_config)
+            input_tensors.append(input_tensor_struc)
+        else:
+            tensor_struc = None
+
+        if X_train_text is not None:
+            if self.text_config.mode == 'glove':
+                input_tensor_text = Input(shape=(self.text_config.maxlen,),
+                                        dtype='int32', 
+                                        name='textual_data')
+                tensor_text = lstm_block(input_tensor_text, self.text_config, self.model_config)
+                input_tensors.append(input_tensor_text)
+            elif self.text_config.mode == 'tfidf':
+                input_tensor_text = Input(shape=(self.text_config.max_words,), 
+                                        dtype='float32',
+                                        name='textual_data')
+                tensor_text = dense_block(input_tensor_text, self.model_config)
+                input_tensors.append(input_tensor_text)
+        else:
+            tensor_text = None
+            
+        # Combine features
+        shared_tensor = combine_block(tensor_struc, tensor_text, self.model_config)
+        
+        # Create multiple outputs
+        outputs = output_block_multi_task(shared_tensor, self.model_config)
+        
+        # Create model
+        self.model = tf.keras.Model(inputs=input_tensors, outputs=outputs)
+        
+        # Prepare loss functions and metrics for each task
+        losses = {}
+        metrics = {}
+        for task_type, task_name, num_classes in zip(
+            self.model_config.task_types, 
+            self.model_config.task_names,
+            self.model_config.num_classes_list
+        ):
+            if task_type == 'classification':
+                if num_classes <= 2:
+                    # Binary classification
+                    losses[f'{task_name}_output'] = 'binary_crossentropy'
+                    if self.model_config.metric == 'auc':
+                        metrics[f'{task_name}_output'] = [
+                            tf.keras.metrics.AUC(name='auc'),
+                            'accuracy'
+                        ]
+                    else:  # acc
+                        metrics[f'{task_name}_output'] = [
+                            'accuracy',
+                            tf.keras.metrics.AUC(name='auc')
+                        ]
+                else:
+                    # Multi-class classification
+                    losses[f'{task_name}_output'] = 'sparse_categorical_crossentropy'
+                    metrics[f'{task_name}_output'] = ['accuracy']
+            else:  # regression
+                losses[f'{task_name}_output'] = 'mse'
+                metrics[f'{task_name}_output'] = ['mse', 'mae']
+        
+        # Compile model
+        self.model.compile(
+            optimizer=optimizers.Adam(lr=self.model_config.learning_rate),
+            loss=losses,
+            metrics=metrics
+        )
+        
+        # Prepare callbacks
+        callbacks = [
+            EarlyStopping(
+                monitor='val_loss',
+                patience=self.model_config.patience,
+                restore_best_weights=True
+            ),
+            ModelCheckpoint(
+                filepath=os.path.join(self.model_config.output_dir, 'model_weights.hdf5'),
+                monitor='val_loss',
+                save_best_only=True
+            ),
+            TensorBoard(log_dir=self.model_config.output_dir)
+        ]
+        
+        # Train model
+        history = self.model.fit(
+            x=filter_none([X_train_struc, X_train_text]),
+            y=y_train_dict,
+            validation_data=(
+                filter_none([X_dev_struc, X_dev_text]),
+                y_dev_dict
+            ),
+            epochs=self.model_config.n_epochs,
+            batch_size=self.model_config.batch_size,
+            callbacks=callbacks,
+            verbose=self.model_config.verbose
+        )
+        
+        # Save model
+        self.model.save(os.path.join(self.model_config.output_dir, 'model'))
+        
+        # Return validation metrics
+        val_metrics = {}
+        for task_name, task_type in zip(self.model_config.task_names, self.model_config.task_types):
+            if task_type == 'classification':
+                if self.model_config.metric == 'auc':
+                    val_auc = history.history[f'val_{task_name}_output_auc'][-1]
+                    val_metrics[f'{task_name}_error_rate'] = 1 - val_auc
+                elif self.model_config.metric == 'acc':
+                    val_acc = history.history[f'val_{task_name}_output_accuracy'][-1]
+                    val_metrics[f'{task_name}_error_rate'] = 1 - val_acc
+            else:  # regression
+                val_mse = history.history[f'val_{task_name}_output_mse'][-1]
+                val_metrics[f'{task_name}_mse'] = val_mse
+                
+        return val_metrics
+
+    def predict_multi_task(self, X_test_struc, X_test_text=None):
+        """Predict multiple outputs"""
+        predictions = self.model.predict(filter_none([X_test_struc, X_test_text]))
+        
+        # Handle multiple outputs
+        if not isinstance(predictions, list):
+            predictions = [predictions]
+            
+        results = {}
+        for pred, task_type, task_name in zip(
+            predictions, 
+            self.model_config.task_types,
+            self.model_config.task_names
+        ):
+            if task_type == 'classification':
+                if pred.shape[-1] == 1:  # binary classification
+                    results[task_name] = (pred > 0.5).astype(int)
+                else:  # multi-class classification
+                    results[task_name] = np.argmax(pred, axis=-1)
+            else:  # regression
+                results[task_name] = pred
+                
+        return results
 
 
 def onehot2id(labels):
